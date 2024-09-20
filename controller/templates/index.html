@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spider Controller</title>
+    
+    <!-- Bootstrap CSS via CDN -->
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    
+    <style>
+        /* Center the buttons */
+        .button-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            justify-items: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        /* Set up the button positions */
+        .button-grid .up {
+            grid-column: 2;
+        }
+
+        .button-grid .left {
+            grid-column: 1;
+        }
+
+        .button-grid .right {
+            grid-column: 3;
+        }
+
+        .button-grid .down {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        /* Style the inputs and edit buttons inline */
+        .input-group .col {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .input-group .col label {
+            margin-right: 10px;
+            white-space: nowrap;
+        }
+
+        .input-group .col input {
+            width: 50px;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container text-center">
+        <h3 class="my-4">Control Panel</h3>
+         <!-- Video Feed -->
+         <div class="video-container">
+            <video id="videoFeed" autoplay muted></video>
+            <button id="captureButton" class="btn btn-success capture-button">Capture Image</button>
+        </div>
+
+        <!-- Download Link for Captured Image -->
+        <a id="downloadLink" style="display: none;">Download Captured Image</a>
+
+        <div class="button-grid">
+            <!-- Up Button -->
+            <button id="upButton" class="btn btn-primary up">Forward</button>
+            <!-- Left Button -->
+            <button id="leftButton" class="btn btn-primary left">Left</button>
+            <!-- Right Button -->
+            <button id="rightButton" class="btn btn-primary right">Right</button>
+            <!-- Down Button -->
+            <button id="downButton" class="btn btn-primary down">Backward</button>
+        </div>
+        
+        <h3>Setting</h3>
+        <div class="input-group row form-inline">
+            <!-- Key inputs with edit buttons -->
+            <div class="col">
+                <label for="upKey">Forward</label>
+                <input class="form-control" type="text" id="upKey" value="w" maxlength="1" />
+                <button class="btn btn-secondary edit-btn" data-target="upKey">Edit</button>
+            </div>
+            <div class="col">
+                <label for="leftKey">Left</label>
+                <input class="form-control" type="text" id="leftKey" value="a" maxlength="1" />
+                <button class="btn btn-secondary edit-btn" data-target="leftKey">Edit</button>
+            </div>
+            <div class="col">
+                <label for="rightKey">Right</label>
+                <input class="form-control" type="text" id="rightKey" value="d" maxlength="1" />
+                <button class="btn btn-secondary edit-btn" data-target="rightKey">Edit</button>
+            </div>
+            <div class="col">
+                <label for="downKey">Backward</label>
+                <input class="form-control" type="text" id="downKey" value="s" maxlength="1" />
+                <button class="btn btn-secondary edit-btn" data-target="downKey">Edit</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS and dependencies via CDN -->
+    <script src="{{ url_for('static', filename='js/jquery-3.5.1.slim.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/popper.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up video feed
+            const videoFeed = document.getElementById('videoFeed');
+            videoFeed.src = '/video_feed'; // Set the source to the video feed URL
+
+            const captureButton = document.getElementById('captureButton');
+            const downloadLink = document.getElementById('downloadLink');
+
+            captureButton.addEventListener('click', function() {
+                // Create a canvas element to capture the video frame
+                const canvas = document.createElement('canvas');
+                canvas.width = videoFeed.videoWidth;
+                canvas.height = videoFeed.videoHeight;
+
+                // Draw the current frame from the video onto the canvas
+                const context = canvas.getContext('2d');
+                context.drawImage(videoFeed, 0, 0, canvas.width, canvas.height);
+
+                // Convert the canvas content to a data URL
+                const dataUrl = canvas.toDataURL('image/jpeg');
+
+                // Create a download link for the captured image
+                downloadLink.href = dataUrl;
+                downloadLink.download = 'captured_image.jpg';
+                downloadLink.style.display = 'block'; // Show the link
+                downloadLink.textContent = 'Download Captured Image';
+            });
+
+            // Map the buttons to the key inputs
+            const upButton = document.getElementById('upButton');
+            const leftButton = document.getElementById('leftButton');
+            const rightButton = document.getElementById('rightButton');
+            const downButton = document.getElementById('downButton');
+
+            const upKey = document.getElementById('upKey');
+            const leftKey = document.getElementById('leftKey');
+            const rightKey = document.getElementById('rightKey');
+            const downKey = document.getElementById('downKey');
+
+            let activeInput = null;
+
+            // Function to map keys to button clicks
+            document.addEventListener('keydown', function(event) {
+                if (activeInput) {
+                    // Set the input value to the pressed key
+                    activeInput.value = event.key;
+                    activeInput = null;
+                } else {
+                    // Normal key mapping for buttons
+                    if (event.key === upKey.value) {
+                        upButton.click();
+                    } else if (event.key === leftKey.value) {
+                        leftButton.click();
+                    } else if (event.key === rightKey.value) {
+                        rightButton.click();
+                    } else if (event.key === downKey.value) {
+                        downButton.click();
+                    }
+                }
+            });
+
+            // Add click event to all edit buttons
+            document.querySelectorAll('.edit-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    activeInput = document.getElementById(button.getAttribute('data-target'));
+                    activeInput.focus(); // Focus on the input field to edit
+                    activeInput.select(); // Select the text so user can easily replace it
+                });
+            });
+
+            // Example actions on button clicks
+            upButton.addEventListener('click', function() {
+                alert('Up button clicked!');
+            });
+
+            leftButton.addEventListener('click', function() {
+                alert('Left button clicked!');
+            });
+
+            rightButton.addEventListener('click', function() {
+                alert('Right button clicked!');
+            });
+
+            downButton.addEventListener('click', function() {
+                alert('Down button clicked!');
+            });
+        });
+    </script>
+</body>
+</html>

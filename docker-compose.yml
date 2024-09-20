@@ -1,0 +1,11 @@
+services:
+  master:
+    build: .
+    network_mode: host
+    volumes:
+      - ./robot:/app/robot
+      - ./controller:/app/controller
+    ports:
+      - 5000:5000
+    environment:
+      - ROS_DOMAIN_ID=1
