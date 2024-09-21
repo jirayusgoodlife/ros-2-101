@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, render_template, Response
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
+from std_srvs.srv import Trigger
 import threading
 import cv2
 
@@ -31,8 +32,27 @@ def ros2_thread():
 def index():
     return render_template('index.html')
 
+def check_ros2_status():
+    """Checks the status of the ROS 2 node using a service call."""
+    client = ros2_node.create_client(Trigger, 'check_status')
+    if not client.wait_for_service(timeout_sec=2.0):
+        return False, "ROS 2 service 'check_status' not available."
+
+    request = Trigger.Request()
+    future = client.call_async(request)
+    rclpy.spin_until_future_complete(ros2_node, future)
+    if future.result() is not None:
+        return future.result().success, future.result().message
+    else:
+        return False, "Failed to communicate with ROS 2 service."
+    
 @app.route('/send_command', methods=['POST'])
 def send_command():
+    # Check if ROS 2 node is responsive before sending the command
+    status, message = check_ros2_status()
+    if not status:
+        return jsonify({'status': 'error', 'message': f'ROS 2 connection error: {message}'}), 500
+
     command = request.json.get('command')
     if command in ['a', 'w', 's', 'd']:
         ros2_node.publish_command(command)
