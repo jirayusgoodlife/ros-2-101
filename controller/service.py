@@ -61,21 +61,26 @@ def send_command():
         return jsonify({'status': 'error', 'message': 'Invalid command'}), 400
     
 def generate_frames():
-    # Open the video capture device (change 0 to the index of your USB capture card if needed)
-    cap = cv2.VideoCapture(0)
+    # Open the video capture device (0 is usually the default camera)
+    cap = cv2.VideoCapture(0)  # Ensure the correct device index is used
 
     if not cap.isOpened():
-        raise RuntimeError("Could not start video capture.")
+        raise RuntimeError("Could not start video capture. Check the camera connection or permissions.")
 
     while True:
         # Capture frame-by-frame
         success, frame = cap.read()
 
         if not success:
+            print("Failed to grab a frame from the camera.")
             break
 
         # Encode the frame as JPEG
         ret, buffer = cv2.imencode('.jpg', frame)
+        if not ret:
+            print("Failed to encode the frame.")
+            continue
+
         frame = buffer.tobytes()
 
         # Concatenate frame bytes into a response for MJPEG
@@ -83,6 +88,7 @@ def generate_frames():
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
     cap.release()
+    print("Video capture stopped.")
 
 @app.route('/video_feed')
 def video_feed():

@@ -60,7 +60,7 @@
         <h3 class="my-4">Control Panel</h3>
          <!-- Video Feed -->
          <div class="video-container">
-            <video id="videoFeed" autoplay muted></video>
+            <img id="videoFeed" src="/video_feed" alt="Video Feed" class="img-fluid">
             <button id="captureButton" class="btn btn-success capture-button">Capture Image</button>
         </div>
 
@@ -113,18 +113,16 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Set up video feed
             const videoFeed = document.getElementById('videoFeed');
-            videoFeed.src = '/video_feed'; // Set the source to the video feed URL
-
             const captureButton = document.getElementById('captureButton');
             const downloadLink = document.getElementById('downloadLink');
 
             captureButton.addEventListener('click', function() {
-                // Create a canvas element to capture the video frame
+                // Create a canvas element to capture the image from the video feed
                 const canvas = document.createElement('canvas');
-                canvas.width = videoFeed.videoWidth;
-                canvas.height = videoFeed.videoHeight;
+                canvas.width = videoFeed.width;
+                canvas.height = videoFeed.height;
 
-                // Draw the current frame from the video onto the canvas
+                // Draw the current frame from the image onto the canvas
                 const context = canvas.getContext('2d');
                 context.drawImage(videoFeed, 0, 0, canvas.width, canvas.height);
 
