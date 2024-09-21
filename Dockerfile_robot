@@ -6,7 +6,7 @@ WORKDIR /app
 # Update the system and install necessary packages
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y python3-pip python3-venv
+    apt-get install -y python3-pip python3-venv python3-colcon-common-extensions build-essential cmake git
 
 # Create and set up a virtual environment
 RUN python3 -m venv /app/.venv
@@ -17,11 +17,12 @@ RUN /app/.venv/bin/pip install flask pylx16a pyserial numpy PyYAML opencv-python
 COPY ./robot /app/robot
 # COPY ./controller /app/controller
 
+# CMD [ "tail","-f", "/dev/null" ]
 # Source ROS 2 setup and build the ROS 2 workspace
 RUN /bin/bash -c "source /app/.venv/bin/activate && source /opt/ros/jazzy/setup.bash && cd /app/robot && colcon build"
 
 # Expose the required port
-EXPOSE 5000
+# EXPOSE 5000
 
 ENV ROS_DOMAIN_ID=1
 
