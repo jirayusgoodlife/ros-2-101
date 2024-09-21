@@ -1,4 +1,4 @@
-FROM osrf/ros:jazzy-desktop
+FROM ros:jazzy-ros-core
 
 # Set the working directory
 WORKDIR /app
