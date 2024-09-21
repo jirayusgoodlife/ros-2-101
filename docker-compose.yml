@@ -4,6 +4,13 @@ services:
       context: .
       dockerfile: Dockerfile_control
     network_mode: host
+    privileged: true            
+    devices:
+      - /dev/video0:/dev/video0  
+      # - /dev/ttyUSB0:/dev/ttyUSB0 
+      # - /dev/gpiomem:/dev/gpiomem 
+      # - /dev/mem:/dev/mem         
+    restart: always             
     volumes:
       - ./controller:/app/controller
     ports:
@@ -16,7 +23,18 @@ services:
       context: .
       dockerfile: Dockerfile_robot
     network_mode: host
+    privileged: true            
+    devices:
+      # - /dev/video0:/dev/video0  
+      - /dev/ttyUSB0:/dev/ttyUSB0 
+      - /dev/gpiomem:/dev/gpiomem 
+      - /dev/mem:/dev/mem         
+    restart: always    
     volumes:
       - ./robot:/app/robot
     environment:
       - ROS_DOMAIN_ID=1
+
+networks:
+  default:
+    external: true
