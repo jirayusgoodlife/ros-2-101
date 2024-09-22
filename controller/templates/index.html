@@ -56,7 +56,7 @@
     </style>
 </head>
 <body class="bg-light">
-    <div class="container text-center">
+    <div class="container">
         <h3 class="my-4">Control Panel</h3>
          <!-- Video Feed -->
          <div class="video-container">
@@ -121,19 +121,21 @@
                 const canvas = document.createElement('canvas');
                 canvas.width = videoFeed.width;
                 canvas.height = videoFeed.height;
-
+        
                 // Draw the current frame from the image onto the canvas
                 const context = canvas.getContext('2d');
                 context.drawImage(videoFeed, 0, 0, canvas.width, canvas.height);
-
+        
                 // Convert the canvas content to a data URL
                 const dataUrl = canvas.toDataURL('image/jpeg');
-
-                // Create a download link for the captured image
+        
+                // Create a temporary download link element
+                const downloadLink = document.createElement('a');
                 downloadLink.href = dataUrl;
                 downloadLink.download = 'captured_image.jpg';
-                downloadLink.style.display = 'block'; // Show the link
-                downloadLink.textContent = 'Download Captured Image';
+        
+                // Programmatically click the link to trigger the download
+                downloadLink.click();
             });
 
             // Map the buttons to the key inputs
