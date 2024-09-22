@@ -101,6 +101,6 @@ if __name__ == '__main__':
     try:
         ros2_threading = threading.Thread(target=ros2_thread)
         ros2_threading.start()
-        app.run(host='0.0.0.0', port=5000)
+        app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=True)
     finally:
         cv2.destroyAllWindows()
