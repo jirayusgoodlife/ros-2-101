@@ -25,7 +25,7 @@ RUN /app/.venv/bin/pip install flask pylx16a pyserial numpy PyYAML opencv-python
 # COPY ./robot /app/robot
 COPY ./controller /app/controller
 
-# CMD [ "tail","-f", "/dev/null" ]
+
 
 # Source ROS 2 setup and build the ROS 2 workspace
 # RUN /bin/bash -c "source /app/.venv/bin/activate && source /opt/ros/jazzy/setup.bash && cd /app/robot && colcon build"
@@ -35,6 +35,7 @@ EXPOSE 5000
 
 ENV ROS_DOMAIN_ID=1
 
-CMD ["/bin/bash", "-c", "source /app/.venv/bin/activate && cd /app/controller && python3 service.py"]
+# CMD [ "tail","-f", "/dev/null" ]
+CMD ["/bin/bash", "-c", "source /app/.venv/bin/activate && cd /app/controller && python3 main.py"]
 # Command to run your ROS 2 node
 # CMD ["/bin/bash", "-c", "source /app/.venv/bin/activate && source /app/robot/install/setup.bash && ros2 run robot_control ros2_controller"]

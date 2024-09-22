@@ -7,99 +7,84 @@
     
     <!-- Bootstrap CSS via CDN -->
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
-    
-    <style>
-        /* Center the buttons */
-        .button-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
-            justify-items: center;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        /* Set up the button positions */
-        .button-grid .up {
-            grid-column: 2;
-        }
-
-        .button-grid .left {
-            grid-column: 1;
-        }
-
-        .button-grid .right {
-            grid-column: 3;
-        }
-
-        .button-grid .down {
-            grid-column: 2;
-            grid-row: 2;
-        }
-
-        /* Style the inputs and edit buttons inline */
-        .input-group .col {
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-        }
-
-        .input-group .col label {
-            margin-right: 10px;
-            white-space: nowrap;
-        }
-
-        .input-group .col input {
-            width: 50px;
-            margin-right: 10px;
-        }
-    </style>
+    <link href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}" rel="stylesheet">
 </head>
 <body class="bg-light">
     <div class="container">
-        <h3 class="my-4">Control Panel</h3>
-         <!-- Video Feed -->
-         <div class="video-container">
-            <img id="videoFeed" src="/video_feed" alt="Video Feed" class="img-fluid">
-            <button id="captureButton" class="btn btn-success capture-button">Capture Image</button>
-        </div>
-
-        <!-- Download Link for Captured Image -->
-        <a id="downloadLink" style="display: none;">Download Captured Image</a>
-
-        <div class="button-grid">
-            <!-- Up Button -->
-            <button id="upButton" class="btn btn-primary up">Forward</button>
-            <!-- Left Button -->
-            <button id="leftButton" class="btn btn-primary left">Left</button>
-            <!-- Right Button -->
-            <button id="rightButton" class="btn btn-primary right">Right</button>
-            <!-- Down Button -->
-            <button id="downButton" class="btn btn-primary down">Backward</button>
-        </div>
-        
-        <h3>Setting</h3>
-        <div class="input-group row form-inline">
-            <!-- Key inputs with edit buttons -->
-            <div class="col">
-                <label for="upKey">Forward</label>
-                <input class="form-control" type="text" id="upKey" value="w" maxlength="1" />
-                <button class="btn btn-secondary edit-btn" data-target="upKey">Edit</button>
+        <div class="row">
+            <h1 class="col-12">Control Panel</h1>
+            <div class="col-sm-12">
+                <!-- Video Feed -->
+                <div class="d-inline">
+                    <img id="videoFeed" src="/video_feed" alt="Video Feed" class="img-fluid rounded w-100">
+                    
+                </div>
             </div>
-            <div class="col">
-                <label for="leftKey">Left</label>
-                <input class="form-control" type="text" id="leftKey" value="a" maxlength="1" />
-                <button class="btn btn-secondary edit-btn" data-target="leftKey">Edit</button>
-            </div>
-            <div class="col">
-                <label for="rightKey">Right</label>
-                <input class="form-control" type="text" id="rightKey" value="d" maxlength="1" />
-                <button class="btn btn-secondary edit-btn" data-target="rightKey">Edit</button>
-            </div>
-            <div class="col">
-                <label for="downKey">Backward</label>
-                <input class="form-control" type="text" id="downKey" value="s" maxlength="1" />
-                <button class="btn btn-secondary edit-btn" data-target="downKey">Edit</button>
+            <div class="pt-3 pb-2 col-sm-12">                
+                <div class="row d-flex justify-content-center">
+                    <button id="captureButton" class="btn btn-success capture-button mx-2"><i class="fa-solid fa-camera"></i></button>
+                    <a id="downloadLink" style="display: none;">Download Captured Image</a>
+                    <div class="btn-group" role="group">
+                        <button id="startButton" class="btn mx-1" style=""><i class="fa-solid fa-power-off"></i></button>
+                        <!-- Up Button -->
+                        <button id="upButton" class="btn btn-primary"><i class="fa-solid fa-arrow-up"></i></button>
+                        <!-- Left Button -->
+                        <button id="leftButton" class="btn btn-primary"><i class="fa-solid fa-arrow-left"></i></button>
+                        <!-- Right Button -->
+                        <button id="rightButton" class="btn btn-primary"><i class="fa-solid fa-arrow-right"></i></button>
+                        <!-- Down Button -->
+                        <button id="downButton" class="btn btn-primary"><i class="fa-solid fa-arrow-down"></i></button>
+                    </div>    
+                </div>
+                <div class="pt-2 row">
+                    <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#collapseWidthExample" aria-expanded="false" aria-controls="collapseWidthExample">
+                        <i class="fa-solid fa-gear"></i> Setting
+                      </button>
+                </div>
+                <div class="pt-2 row">
+                    <div class="collapse width" id="collapseWidthExample">
+                        <div class="btn-group" role="group">
+                            <div class="col">
+                                <label for="startKey">Start Engine</label>
+                                <input class="form-control" type="text" id="startKey" value=" " disabled maxlength="1" />
+                                <br />
+                                <button class="btn btn-secondary edit-btn" data-target="startKey">Edit</button>
+                            </div>
+                            <div class="col">
+                                <label for="captureKey">Capture Image</label>
+                                <input class="form-control" type="text" id="captureKey" value="c" disabled maxlength="1" />
+                                <br />
+                                <button class="btn btn-secondary edit-btn" data-target="captureKey">Edit</button>
+                            </div>
+                        </div>
+                        <div class="btn-group" role="group">
+                            <div class="col">
+                                <label for="upKey">Forward</label>
+                                <input class="form-control" type="text" id="upKey" value="w" disabled maxlength="1" />
+                                <br />
+                                <button class="btn btn-secondary edit-btn" data-target="upKey">Edit</button>
+                            </div>
+                            <div class="col">
+                                <label for="leftKey">Left</label>
+                                <input class="form-control" type="text" id="leftKey" value="a" disabled maxlength="1" />
+                                <br />
+                                <button class="btn btn-secondary edit-btn" data-target="leftKey">Edit</button>
+                            </div>
+                            <div class="col">
+                                <label for="rightKey">Right</label>
+                                <input class="form-control" type="text" id="rightKey" value="d" disabled maxlength="1" />
+                                <br />
+                                <button class="btn btn-secondary edit-btn" data-target="rightKey">Edit</button>
+                            </div>
+                            <div class="col">
+                                <label for="downKey">Backward</label>
+                                <input class="form-control" type="text" id="downKey" value="s" disabled maxlength="1" />
+                                <br />
+                                <button class="btn btn-secondary edit-btn" data-target="downKey">Edit</button>
+                            </div>
+                        </div>
+                    </div>   
+                </div>                            
             </div>
         </div>
     </div>
@@ -108,15 +93,55 @@
     <script src="{{ url_for('static', filename='js/jquery-3.5.1.slim.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/popper.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='fontawesome/js/all.min.js') }}"></script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        $(document).ready(function () {
             // Set up video feed
-            const videoFeed = document.getElementById('videoFeed');
-            const captureButton = document.getElementById('captureButton');
-            const downloadLink = document.getElementById('downloadLink');
+            const videoFeed = $('#videoFeed')[0];
+        
+            // Map the buttons to the key inputs            
+            const captureButton = $('#captureButton');
+            const startButton = $("#startButton")
+            const upButton = $('#upButton');
+            const leftButton = $('#leftButton');
+            const rightButton = $('#rightButton');
+            const downButton = $('#downButton');
+            
+            const captureKey = $('#captureKey');
+            const startKey = $('#startKey');
+            const upKey = $('#upKey');
+            const leftKey = $('#leftKey');
+            const rightKey = $('#rightKey');
+            const downKey = $('#downKey');
+        
+            let activeInput = null;
+            let isStarted = false;
+            
+            function startChecker(){
+                if(isStarted){
+                    startButton.css({"background-color": "green", "color": "white"});
+                    upButton.prop('disabled', false);
+                    leftButton.prop('disabled', false);
+                    rightButton.prop('disabled', false);
+                    downButton.prop('disabled', false);
+                }else{
+                    startButton.css({"background-color": "red", "color": "white"});
+                    upButton.prop('disabled', true);
+                    leftButton.prop('disabled', true);
+                    rightButton.prop('disabled', true);
+                    downButton.prop('disabled', true);
+                }
+            }
 
-            captureButton.addEventListener('click', function() {
+            startChecker();
+
+            startButton.on("click", function(){
+                isStarted = !isStarted;
+                startChecker()
+            })
+
+            captureButton.on('click', function () {
                 // Create a canvas element to capture the image from the video feed
                 const canvas = document.createElement('canvas');
                 canvas.width = videoFeed.width;
@@ -130,73 +155,79 @@
                 const dataUrl = canvas.toDataURL('image/jpeg');
         
                 // Create a temporary download link element
-                const downloadLink = document.createElement('a');
-                downloadLink.href = dataUrl;
-                downloadLink.download = 'captured_image.jpg';
+                const $downloadLink = $('<a>').attr({
+                    href: dataUrl,
+                    download: 'captured_image.jpg'
+                });
         
                 // Programmatically click the link to trigger the download
-                downloadLink.click();
+                $downloadLink[0].click();
             });
-
-            // Map the buttons to the key inputs
-            const upButton = document.getElementById('upButton');
-            const leftButton = document.getElementById('leftButton');
-            const rightButton = document.getElementById('rightButton');
-            const downButton = document.getElementById('downButton');
-
-            const upKey = document.getElementById('upKey');
-            const leftKey = document.getElementById('leftKey');
-            const rightKey = document.getElementById('rightKey');
-            const downKey = document.getElementById('downKey');
-
-            let activeInput = null;
-
+        
             // Function to map keys to button clicks
-            document.addEventListener('keydown', function(event) {
+            $(document).on('keydown', function (event) {                
                 if (activeInput) {
                     // Set the input value to the pressed key
-                    activeInput.value = event.key;
+                    activeInput.val(event.key);
                     activeInput = null;
                 } else {
+                    if(event.key === startKey.val()){
+                        isStarted = !isStarted;
+                        startChecker()
+                    } else if(event.key === captureKey.val()){
+                        captureButton.click()
+                    }
+
+                    if(!isStarted) return
                     // Normal key mapping for buttons
-                    if (event.key === upKey.value) {
+                    if (event.key === upKey.val()) {
                         upButton.click();
-                    } else if (event.key === leftKey.value) {
+                    } else if (event.key === leftKey.val()) {
                         leftButton.click();
-                    } else if (event.key === rightKey.value) {
+                    } else if (event.key === rightKey.val()) {
                         rightButton.click();
-                    } else if (event.key === downKey.value) {
+                    } else if (event.key === downKey.val()) {
                         downButton.click();
                     }
                 }
             });
-
-            // Add click event to all edit buttons
-            document.querySelectorAll('.edit-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    activeInput = document.getElementById(button.getAttribute('data-target'));
-                    activeInput.focus(); // Focus on the input field to edit
-                    activeInput.select(); // Select the text so user can easily replace it
-                });
+        
+            // Add click event to all edit buttons with toggle functionality
+            $('.edit-btn').on('click', function () {
+                const button = $(this);
+                const input = $('#' + button.data('target'));
+        
+                if (button.text() === 'Edit') {
+                    button.text('Save');  // Change button text to "Save"
+                    input.prop('disabled', false);  // Enable the input field
+                    input.focus();  // Focus on the input field to edit
+                    input.select();  // Select the text so user can easily replace it
+                    activeInput = input;  // Set the active input for key capture
+                } else {
+                    button.text('Edit');  // Change button text back to "Edit"
+                    input.prop('disabled', true);  // Disable the input field after editing
+                    activeInput = null;  // Clear the active input
+                }
             });
-
+        
             // Example actions on button clicks
-            upButton.addEventListener('click', function() {
+            upButton.on('click', function () {
                 alert('Up button clicked!');
             });
-
-            leftButton.addEventListener('click', function() {
+        
+            leftButton.on('click', function () {
                 alert('Left button clicked!');
             });
-
-            rightButton.addEventListener('click', function() {
+        
+            rightButton.on('click', function () {
                 alert('Right button clicked!');
             });
-
-            downButton.addEventListener('click', function() {
+        
+            downButton.on('click', function () {
                 alert('Down button clicked!');
             });
         });
+              
     </script>
 </body>
 </html>
