@@ -3,7 +3,7 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile_control
-    network_mode: host
+    # network_mode: host
     privileged: true            
     devices:
       - /dev/video0:/dev/video0  
@@ -22,7 +22,7 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile_robot
-    network_mode: host
+    # network_mode: host
     privileged: true            
     devices:
       # - /dev/video0:/dev/video0  
@@ -36,6 +36,6 @@ services:
       - ROS_DOMAIN_ID=1
     ports:
       - 5555:5555
-networks:
-  default:
-    external: true
+# networks:
+  # default:
+    # external: true
