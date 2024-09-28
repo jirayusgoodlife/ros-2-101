@@ -14,12 +14,15 @@ RUN apt-get update && \
     cmake \
     git \
     libgl1 \
-    libglib2.0-0
+    libglib2.0-0 \
+    libzmq3-dev
 
 # Create and set up a virtual environment
 RUN python3 -m venv /app/.venv
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /app/.venv/bin/activate
-RUN /app/.venv/bin/pip install flask pylx16a pyserial numpy PyYAML opencv-python
+RUN /app/.venv/bin/pip install flask pylx16a pyserial numpy PyYAML opencv-python pyzmq
+
+ENV PYTHONPATH=/app/.venv/lib/python3.12/site-packages:$PYTHONPATH
 
 # Copy your application files into the container
 COPY ./robot /app/robot
@@ -33,8 +36,8 @@ RUN /bin/bash -c "source /app/.venv/bin/activate && source /opt/ros/jazzy/setup.
 # EXPOSE 5000
 
 ENV ROS_DOMAIN_ID=1
-ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
-ENV FASTRTPS_DEFAULT_PROFILES_FILE=/app/robot/config/fastrtps.xml
+# ENV RMW_IMPLEMENTATION='rmw_fastrtps_cpp ros2 run robot_control ros2_controller'
+# ENV FASTRTPS_DEFAULT_PROFILES_FILE=/app/robot/config/fastrtps.xml
 
 CMD [ "tail","-f", "/dev/null" ]
 # CMD ["/bin/bash", "-c", "source /app/.venv/bin/activate && cd /app/controller && python3 service.py"]

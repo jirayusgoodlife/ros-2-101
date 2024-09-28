@@ -1,82 +1,31 @@
 from flask import Flask, request, jsonify, render_template, Response
-import rclpy
-from rclpy.node import Node
-from std_msgs.msg import String
-from std_srvs.srv import Trigger
-from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
+import zmq
 import threading
 import cv2
 
 app = Flask(__name__)
-ros2_node = None
 
-class FlaskROS2Publisher(Node):
-    def __init__(self):
-        super().__init__('flask_publisher')
-        # Set up QoS profile for reliable communication
-        qos_profile = QoSProfile(
-            reliability=ReliabilityPolicy.RELIABLE,
-            history=HistoryPolicy.KEEP_LAST,
-            depth=10
-        )
-        self.publisher_ = self.create_publisher(String, 'command_topic', qos_profile)
-
-    def publish_command(self, command):
-        msg = String()
-        msg.data = command
-        try:
-            self.publisher_.publish(msg)
-            self.get_logger().info(f'Published command: {command}')
-        except Exception as e:
-            self.get_logger().error(f'Failed to publish command: {command}, Error: {str(e)}')
-
-def ros2_thread():
-    """Function to start the ROS 2 node in a separate thread."""
-    global ros2_node
-    rclpy.init()
-    ros2_node = FlaskROS2Publisher()
-    # Log the middleware being used (e.g., Fast DDS)
-    ros2_node.get_logger().info(f'Using middleware: {rclpy.get_rmw_implementation_identifier()}')
-    try:
-        rclpy.spin(ros2_node)
-    except Exception as e:
-        ros2_node.get_logger().error(f'Error in ROS 2 spinning: {str(e)}')
-    finally:
-        ros2_node.destroy_node()
-        rclpy.shutdown()
-        print('ROS 2 node has been shut down.')
+# Set up ZeroMQ REQ socket to communicate with ROS 2
+context = zmq.Context()
+socket = context.socket(zmq.REQ)
+socket.connect("tcp://localhost:5555")  # Connect to the ROS 2 node
 
 @app.route('/')
 def index():
     """Route for rendering the index page."""
     return render_template('index.html')
 
-def check_ros2_status():
-    """Checks the status of the ROS 2 node using a service call."""
-    client = ros2_node.create_client(Trigger, 'check_status')
-    if not client.wait_for_service(timeout_sec=2.0):
-        return False, "ROS 2 service 'check_status' not available."
-
-    request = Trigger.Request()
-    future = client.call_async(request)
-    rclpy.spin_until_future_complete(ros2_node, future)
-    if future.result() is not None:
-        return future.result().success, future.result().message
-    else:
-        return False, "Failed to communicate with ROS 2 service."
-
 @app.route('/send_command', methods=['POST'])
 def send_command():
     """Route for sending commands to the ROS 2 node."""
-    # Check if ROS 2 node is responsive before sending the command
-    status, message = check_ros2_status()
-    if not status:
-        return jsonify({'status': 'error', 'message': f'ROS 2 connection error: {message}'}), 500
-
     command = request.json.get('command')
     if command in ['a', 'w', 's', 'd']:
-        ros2_node.publish_command(command)
-        return jsonify({'status': 'success', 'message': f'Command {command} sent to ROS 2'})
+        # Send the command to ROS 2 via ZeroMQ
+        socket.send_string(command)
+
+        # Receive the response from ROS 2 node
+        response = socket.recv_string()
+        return jsonify({'status': 'success', 'message': response})
     else:
         return jsonify({'status': 'error', 'message': 'Invalid command'}), 400
 
@@ -112,15 +61,11 @@ def video_feed():
 
 if __name__ == '__main__':
     try:
-        # Start ROS 2 node in a separate thread
-        ros2_threading = threading.Thread(target=ros2_thread)
-        ros2_threading.start()
         # Run Flask server
         app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
     except Exception as e:
         print(f"An error occurred: {str(e)}")
     finally:
-        # Ensure all ROS 2 and OpenCV resources are cleaned up
-        rclpy.shutdown()
+        # Ensure all OpenCV resources are cleaned up
         cv2.destroyAllWindows()
         print("Application terminated gracefully.")

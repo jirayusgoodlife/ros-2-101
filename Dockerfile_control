@@ -19,7 +19,7 @@ RUN apt-get update && \
 # Create and set up a virtual environment
 RUN python3 -m venv /app/.venv
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /app/.venv/bin/activate
-RUN /app/.venv/bin/pip install flask pylx16a pyserial numpy PyYAML opencv-python
+RUN /app/.venv/bin/pip install flask pylx16a pyserial numpy PyYAML opencv-python pyzmq
 
 # Copy your application files into the container
 # COPY ./robot /app/robot

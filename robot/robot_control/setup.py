@@ -11,13 +11,15 @@ setup(
          ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
     ],
-    install_requires=['setuptools'],
+    install_requires=[
+        'setuptools',
+        'pyzmq',  # Add pyzmq as a dependency to ensure it is installed
+    ],
     zip_safe=True,
     maintainer='naphon',
     maintainer_email='naphon.851@gmail.com',
     description='ROS 2 package for controlling a robot using keyboard commands',
     license='Apache License 2.0',
-    #tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'ros2_controller = robot_control.ros2_controller:main'
