@@ -3,6 +3,7 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 from std_srvs.srv import Trigger
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 import threading
 import cv2
 
@@ -12,24 +13,42 @@ ros2_node = None
 class FlaskROS2Publisher(Node):
     def __init__(self):
         super().__init__('flask_publisher')
-        self.publisher_ = self.create_publisher(String, 'command_topic', 10)
+        # Set up QoS profile for reliable communication
+        qos_profile = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=10
+        )
+        self.publisher_ = self.create_publisher(String, 'command_topic', qos_profile)
 
     def publish_command(self, command):
         msg = String()
         msg.data = command
-        self.publisher_.publish(msg)
-        self.get_logger().info(f'Published command: {command}')
-
+        try:
+            self.publisher_.publish(msg)
+            self.get_logger().info(f'Published command: {command}')
+        except Exception as e:
+            self.get_logger().error(f'Failed to publish command: {command}, Error: {str(e)}')
 
 def ros2_thread():
+    """Function to start the ROS 2 node in a separate thread."""
     global ros2_node
     rclpy.init()
     ros2_node = FlaskROS2Publisher()
-    rclpy.spin(ros2_node)
-    
-# Route for rendering the index page
+    # Log the middleware being used (e.g., Fast DDS)
+    ros2_node.get_logger().info(f'Using middleware: {rclpy.get_rmw_implementation_identifier()}')
+    try:
+        rclpy.spin(ros2_node)
+    except Exception as e:
+        ros2_node.get_logger().error(f'Error in ROS 2 spinning: {str(e)}')
+    finally:
+        ros2_node.destroy_node()
+        rclpy.shutdown()
+        print('ROS 2 node has been shut down.')
+
 @app.route('/')
 def index():
+    """Route for rendering the index page."""
     return render_template('index.html')
 
 def check_ros2_status():
@@ -45,9 +64,10 @@ def check_ros2_status():
         return future.result().success, future.result().message
     else:
         return False, "Failed to communicate with ROS 2 service."
-    
+
 @app.route('/send_command', methods=['POST'])
 def send_command():
+    """Route for sending commands to the ROS 2 node."""
     # Check if ROS 2 node is responsive before sending the command
     status, message = check_ros2_status()
     if not status:
@@ -59,31 +79,26 @@ def send_command():
         return jsonify({'status': 'success', 'message': f'Command {command} sent to ROS 2'})
     else:
         return jsonify({'status': 'error', 'message': 'Invalid command'}), 400
-    
+
 def generate_frames():
-    # Open the video capture device (0 is usually the default camera)
+    """Generator function for streaming video frames from the camera."""
     cap = cv2.VideoCapture(0)  # Ensure the correct device index is used
 
     if not cap.isOpened():
         raise RuntimeError("Could not start video capture. Check the camera connection or permissions.")
 
     while True:
-        # Capture frame-by-frame
         success, frame = cap.read()
-
         if not success:
             print("Failed to grab a frame from the camera.")
             break
 
-        # Encode the frame as JPEG
         ret, buffer = cv2.imencode('.jpg', frame)
         if not ret:
             print("Failed to encode the frame.")
             continue
 
         frame = buffer.tobytes()
-
-        # Concatenate frame bytes into a response for MJPEG
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
@@ -92,15 +107,20 @@ def generate_frames():
 
 @app.route('/video_feed')
 def video_feed():
-    # Video streaming route
+    """Route for video streaming."""
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-
-# Main entry point
 if __name__ == '__main__':
     try:
+        # Start ROS 2 node in a separate thread
         ros2_threading = threading.Thread(target=ros2_thread)
         ros2_threading.start()
-        app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=True)
+        # Run Flask server
+        app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
     finally:
+        # Ensure all ROS 2 and OpenCV resources are cleaned up
+        rclpy.shutdown()
         cv2.destroyAllWindows()
+        print("Application terminated gracefully.")
