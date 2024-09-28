@@ -1,94 +1,154 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spider Controller</title>
-    
+
     <!-- Bootstrap CSS via CDN -->
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}" rel="stylesheet">
 </head>
+
 <body class="bg-light">
-    <div class="container">
+    <div class="container mt-3">
         <div class="row">
             <h1 class="col-12">Control Panel</h1>
             <div class="col-sm-12">
                 <!-- Video Feed -->
                 <div class="d-inline">
                     <img id="videoFeed" src="/video_feed" alt="Video Feed" class="img-fluid rounded w-100">
-                    
+
                 </div>
             </div>
-            <div class="pt-3 pb-2 col-sm-12">                
+            <div class="pt-3 pb-2 col-sm-12">
                 <div class="row d-flex justify-content-center">
-                    <button id="captureButton" class="btn btn-success capture-button mx-2"><i class="fa-solid fa-camera"></i></button>
+                    <button id="captureButton" class="btn btn-success capture-button mx-2"><i
+                            class="fa-solid fa-camera"></i></button>
                     <a id="downloadLink" style="display: none;">Download Captured Image</a>
-                    <div class="btn-group" role="group">
-                        <button id="startButton" class="btn mx-1" style=""><i class="fa-solid fa-power-off"></i></button>
+                    <div class="btn-group" role="group"></div>
+                        <!-- Start Button -->
+                        <button id="startButton" class="btn mx-1">
+                            <i class="fa-solid fa-power-off"></i>
+                        </button>
                         <!-- Up Button -->
-                        <button id="upButton" class="btn btn-primary"><i class="fa-solid fa-arrow-up"></i></button>
+                        <button id="upButton" class="btn btn-primary">
+                            <i class="fa-solid fa-arrow-up"></i>
+                        </button>
                         <!-- Left Button -->
-                        <button id="leftButton" class="btn btn-primary"><i class="fa-solid fa-arrow-left"></i></button>
+                        <button id="leftButton" class="btn btn-primary">
+                            <i class="fa-solid fa-arrow-left"></i>
+                        </button>
                         <!-- Right Button -->
-                        <button id="rightButton" class="btn btn-primary"><i class="fa-solid fa-arrow-right"></i></button>
+                        <button id="rightButton" class="btn btn-primary">
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
                         <!-- Down Button -->
-                        <button id="downButton" class="btn btn-primary"><i class="fa-solid fa-arrow-down"></i></button>
-                    </div>    
+                        <button id="downButton" class="btn btn-primary">
+                            <i class="fa-solid fa-arrow-down"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="pt-2 row">
-                    <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#collapseWidthExample" aria-expanded="false" aria-controls="collapseWidthExample">
-                        <i class="fa-solid fa-gear"></i> Setting
-                      </button>
+                    <div class="col-12">
+                        <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="btn nav-link" id="pills-home-tab" data-toggle="pill"
+                                    data-target="#pills-tab1" type="button" role="tab" aria-controls="pills-tab1"
+                                    aria-selected="true">
+                                    <i class="fa-solid fa-list"></i> Logs
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="btn nav-link" id="pills-profile-tab" data-toggle="pill"
+                                    data-target="#pills-tab2" type="button" role="tab" aria-controls="pills-tab2"
+                                    aria-selected="false">
+                                    <i class="fa-solid fa-gear"></i> Setting
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-12">
+                        <div class="tab-content" id="pills-tabContent">
+                            <div class="tab-pane fade" id="pills-tab1" role="tabpanel" aria-labelledby="pills-home-tab">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="table-responsive-sm">
+                                            <table class="table table-borderless table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <td width="10%">Date</td>
+                                                        <td width="5%">Type</td>
+                                                        <td>Detail</td>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="pills-tab2" role="tabpanel"
+                                aria-labelledby="pills-profile-tab">
+                                <div class="btn-group" role="group">
+                                    <div class="col">
+                                        <label for="startKey">Start Engine</label>
+                                        <input class="form-control" type="text" id="startKey" value=" " disabled
+                                            maxlength="1" />
+                                        <br />
+                                        <button class="btn btn-secondary edit-btn" data-target="startKey">Edit</button>
+                                    </div>
+                                    <div class="col">
+                                        <label for="captureKey">Capture Image</label>
+                                        <input class="form-control" type="text" id="captureKey" value="c" disabled
+                                            maxlength="1" />
+                                        <br />
+                                        <button class="btn btn-secondary edit-btn"
+                                            data-target="captureKey">Edit</button>
+                                    </div>
+                                </div>
+                                <div class="btn-group mt-4" role="group">
+                                    <div class="col">
+                                        <label for="upKey">Forward</label>
+                                        <input class="form-control" type="text" id="upKey" value="w" disabled
+                                            maxlength="1" />
+                                        <br />
+                                        <button class="btn btn-secondary edit-btn" data-target="upKey">Edit</button>
+                                    </div>
+                                    <div class="col">
+                                        <label for="leftKey">Left</label>
+                                        <input class="form-control" type="text" id="leftKey" value="a" disabled
+                                            maxlength="1" />
+                                        <br />
+                                        <button class="btn btn-secondary edit-btn" data-target="leftKey">Edit</button>
+                                    </div>
+                                    <div class="col">
+                                        <label for="rightKey">Right</label>
+                                        <input class="form-control" type="text" id="rightKey" value="d" disabled
+                                            maxlength="1" />
+                                        <br />
+                                        <button class="btn btn-secondary edit-btn" data-target="rightKey">Edit</button>
+                                    </div>
+                                    <div class="col">
+                                        <label for="downKey">Backward</label>
+                                        <input class="form-control" type="text" id="downKey" value="s" disabled
+                                            maxlength="1" />
+                                        <br />
+                                        <button class="btn btn-secondary edit-btn" data-target="downKey">Edit</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="pt-2 row">
-                    <div class="collapse width" id="collapseWidthExample">
-                        <div class="btn-group" role="group">
-                            <div class="col">
-                                <label for="startKey">Start Engine</label>
-                                <input class="form-control" type="text" id="startKey" value=" " disabled maxlength="1" />
-                                <br />
-                                <button class="btn btn-secondary edit-btn" data-target="startKey">Edit</button>
-                            </div>
-                            <div class="col">
-                                <label for="captureKey">Capture Image</label>
-                                <input class="form-control" type="text" id="captureKey" value="c" disabled maxlength="1" />
-                                <br />
-                                <button class="btn btn-secondary edit-btn" data-target="captureKey">Edit</button>
-                            </div>
-                        </div>
-                        <div class="btn-group" role="group">
-                            <div class="col">
-                                <label for="upKey">Forward</label>
-                                <input class="form-control" type="text" id="upKey" value="w" disabled maxlength="1" />
-                                <br />
-                                <button class="btn btn-secondary edit-btn" data-target="upKey">Edit</button>
-                            </div>
-                            <div class="col">
-                                <label for="leftKey">Left</label>
-                                <input class="form-control" type="text" id="leftKey" value="a" disabled maxlength="1" />
-                                <br />
-                                <button class="btn btn-secondary edit-btn" data-target="leftKey">Edit</button>
-                            </div>
-                            <div class="col">
-                                <label for="rightKey">Right</label>
-                                <input class="form-control" type="text" id="rightKey" value="d" disabled maxlength="1" />
-                                <br />
-                                <button class="btn btn-secondary edit-btn" data-target="rightKey">Edit</button>
-                            </div>
-                            <div class="col">
-                                <label for="downKey">Backward</label>
-                                <input class="form-control" type="text" id="downKey" value="s" disabled maxlength="1" />
-                                <br />
-                                <button class="btn btn-secondary edit-btn" data-target="downKey">Edit</button>
-                            </div>
-                        </div>
-                    </div>   
-                </div>                            
             </div>
         </div>
     </div>
-    
+    </div>
+
     <!-- Bootstrap JS and dependencies via CDN -->
     <script src="{{ url_for('static', filename='js/jquery-3.5.1.slim.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/popper.min.js') }}"></script>
@@ -99,7 +159,7 @@
         $(document).ready(function () {
             // Set up video feed
             const videoFeed = $('#videoFeed')[0];
-        
+
             // Map the buttons to the key inputs            
             const captureButton = $('#captureButton');
             const startButton = $("#startButton")
@@ -107,26 +167,26 @@
             const leftButton = $('#leftButton');
             const rightButton = $('#rightButton');
             const downButton = $('#downButton');
-            
+
             const captureKey = $('#captureKey');
             const startKey = $('#startKey');
             const upKey = $('#upKey');
             const leftKey = $('#leftKey');
             const rightKey = $('#rightKey');
             const downKey = $('#downKey');
-        
+
             let activeInput = null;
             let isStarted = false;
-            
-            function startChecker(){
-                if(isStarted){
-                    startButton.css({"background-color": "green", "color": "white"});
+
+            function startChecker() {
+                if (isStarted) {
+                    startButton.css({ "background-color": "green", "color": "white" });
                     upButton.prop('disabled', false);
                     leftButton.prop('disabled', false);
                     rightButton.prop('disabled', false);
                     downButton.prop('disabled', false);
-                }else{
-                    startButton.css({"background-color": "red", "color": "white"});
+                } else {
+                    startButton.css({ "background-color": "red", "color": "white" });
                     upButton.prop('disabled', true);
                     leftButton.prop('disabled', true);
                     rightButton.prop('disabled', true);
@@ -136,7 +196,7 @@
 
             startChecker();
 
-            startButton.on("click", function(){
+            startButton.on("click", function () {
                 isStarted = !isStarted;
                 startChecker()
             })
@@ -146,39 +206,39 @@
                 const canvas = document.createElement('canvas');
                 canvas.width = videoFeed.width;
                 canvas.height = videoFeed.height;
-        
+
                 // Draw the current frame from the image onto the canvas
                 const context = canvas.getContext('2d');
                 context.drawImage(videoFeed, 0, 0, canvas.width, canvas.height);
-        
+
                 // Convert the canvas content to a data URL
                 const dataUrl = canvas.toDataURL('image/jpeg');
-        
+
                 // Create a temporary download link element
                 const $downloadLink = $('<a>').attr({
                     href: dataUrl,
                     download: 'captured_image.jpg'
                 });
-        
+
                 // Programmatically click the link to trigger the download
                 $downloadLink[0].click();
             });
-        
+
             // Function to map keys to button clicks
-            $(document).on('keydown', function (event) {                
+            $(document).on('keydown', function (event) {
                 if (activeInput) {
                     // Set the input value to the pressed key
                     activeInput.val(event.key);
                     activeInput = null;
                 } else {
-                    if(event.key === startKey.val()){
+                    if (event.key === startKey.val()) {
                         isStarted = !isStarted;
                         startChecker()
-                    } else if(event.key === captureKey.val()){
+                    } else if (event.key === captureKey.val()) {
                         captureButton.click()
                     }
 
-                    if(!isStarted) return
+                    if (!isStarted) return
                     // Normal key mapping for buttons
                     if (event.key === upKey.val()) {
                         upButton.click();
@@ -191,12 +251,12 @@
                     }
                 }
             });
-        
+
             // Add click event to all edit buttons with toggle functionality
             $('.edit-btn').on('click', function () {
                 const button = $(this);
                 const input = $('#' + button.data('target'));
-        
+
                 if (button.text() === 'Edit') {
                     button.text('Save');  // Change button text to "Save"
                     input.prop('disabled', false);  // Enable the input field
@@ -209,25 +269,26 @@
                     activeInput = null;  // Clear the active input
                 }
             });
-        
+
             // Example actions on button clicks
             upButton.on('click', function () {
                 alert('Up button clicked!');
             });
-        
+
             leftButton.on('click', function () {
                 alert('Left button clicked!');
             });
-        
+
             rightButton.on('click', function () {
                 alert('Right button clicked!');
             });
-        
+
             downButton.on('click', function () {
                 alert('Down button clicked!');
             });
         });
-              
+
     </script>
 </body>
+
 </html>
