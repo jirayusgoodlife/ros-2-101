@@ -8,7 +8,7 @@ app = Flask(__name__)
 # Set up ZeroMQ REQ socket to communicate with ROS 2
 context = zmq.Context()
 socket = context.socket(zmq.REQ)
-socket.connect("tcp://localhost:5555")  # Connect to the ROS 2 node
+socket.connect("tcp://192.168.137.1:5555")  # Connect to the ROS 2 node
 
 @app.route('/')
 def index():
@@ -19,7 +19,7 @@ def index():
 def send_command():
     """Route for sending commands to the ROS 2 node."""
     command = request.json.get('command')
-    if command in ['a', 'w', 's', 'd']:
+    if command in ['a', 'w', 's', 'd', 'status']:
         # Send the command to ROS 2 via ZeroMQ
         socket.send_string(command)
 
