@@ -4,6 +4,7 @@ from std_msgs.msg import String
 from std_srvs.srv import Trigger
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 import zmq
+import threading
 
 class RobotController(Node):
     def __init__(self):
@@ -33,9 +34,13 @@ class RobotController(Node):
         )
 
         # Set up ZeroMQ REP socket for receiving commands from Flask
-        self.zmq_context = zmq.Context()  # Renamed from self.context to self.zmq_context
+        self.zmq_context = zmq.Context()
         self.zmq_socket = self.zmq_context.socket(zmq.REP)
         self.zmq_socket.bind("tcp://0.0.0.0:5555")  # Bind to a port to listen for commands
+
+        # Start a separate thread for handling ZeroMQ messages
+        self.zmq_thread = threading.Thread(target=self.zmq_listener_thread, daemon=True)
+        self.zmq_thread.start()
 
         self.get_logger().info('RobotController node has been started with Fast DDS and ZeroMQ.')
 
@@ -53,19 +58,23 @@ class RobotController(Node):
             self.get_logger().info('Received command: Turn left')
         elif command == 'd':
             self.get_logger().info('Received command: Turn right')
+        elif command == 'status':
+            response_message = "RobotController is running and responsive."
+            self.get_logger().info('Status check requested: Node is running.')
+            self.zmq_socket.send_string(response_message)
         else:
             self.get_logger().info(f'Received unknown command: {command}')
+            self.zmq_socket.send_string(f"Unknown command: {command}")
 
-    def zmq_listener(self):
-        try:
-            # Non-blocking receive to avoid blocking the main ROS spin loop
-            message = self.zmq_socket.recv_string(flags=zmq.NOBLOCK)
-            self.get_logger().info(f'Received ZeroMQ command: {message}')
-            self.process_command(message)
-            self.zmq_socket.send_string(f"Command {message} received and processed")
-        except zmq.Again:
-            # No message received, continue without blocking
-            pass
+    def zmq_listener_thread(self):
+        while rclpy.ok():
+            try:
+                # Blocking receive to wait for a command
+                message = self.zmq_socket.recv_string()
+                self.get_logger().info(f'Received ZeroMQ command: {message}')
+                self.process_command(message)
+            except zmq.ZMQError as e:
+                self.get_logger().error(f'ZMQError occurred: {e}')
 
     def check_status_callback(self, request, response):
         # Respond to the service call with a success message
@@ -86,9 +95,7 @@ def main(args=None):
 
     # Keep the node running
     try:
-        while rclpy.ok():
-            rclpy.spin_once(robot_controller, timeout_sec=0.1)
-            robot_controller.zmq_listener()  # Check for ZeroMQ messages
+        rclpy.spin(robot_controller)
     except KeyboardInterrupt:
         robot_controller.get_logger().info('Shutting down RobotController...')
 
