@@ -8,7 +8,7 @@ app = Flask(__name__)
 # Set up ZeroMQ REQ socket to communicate with ROS 2
 context = zmq.Context()
 socket = context.socket(zmq.REQ)
-socket.connect("tcp://192.168.137.1:5555")  # Connect to the ROS 2 node
+socket.connect("tcp://192.168.137.90:5555")  # Connect to the ROS 2 node
 
 @app.route('/')
 def index():

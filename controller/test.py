@@ -1,22 +1,26 @@
+# zmq_client.py
 import zmq
 
-# Set up ZeroMQ REQ socket to communicate with the RobotController node
-context = zmq.Context()
-socket = context.socket(zmq.REQ)
-socket.connect("tcp://192.168.137.1:5555")  # Replace <ROS_NODE_IP> with the correct IP address
+def main():
+    # Create a ZeroMQ context
+    context = zmq.Context()
 
-try:
-    # Send the status request
-    socket.send_string("status")
+    # Create a REQ (request) socket
+    socket = context.socket(zmq.REQ)
+    socket.connect("tcp://192.168.137.1:5555")  # Connect to the server on localhost at port 5555
 
-    # Receive the response from the ROS 2 node
-    response = socket.recv_string()
-    print(f"Received response: {response}")
+    # List of commands to send to the server
+    commands = ["status", "ping", "hello"]
 
-except zmq.ZMQError as e:
-    print(f"ZeroMQ Error: {e}")
+    for command in commands:
+        print(f"Sending command: {command}")
+        
+        # Send the command to the server
+        socket.send_string(command)
 
-finally:
-    # Properly close the socket and context
-    socket.close()
-    context.term()
+        # Receive the response from the server
+        response = socket.recv_string()
+        print(f"Received response: {response}")
+
+if __name__ == "__main__":
+    main()
