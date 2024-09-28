@@ -34,7 +34,8 @@ services:
       - ./robot:/app/robot
     environment:
       - ROS_DOMAIN_ID=1
-
+    ports:
+      - 5555:5555
 networks:
   default:
     external: true

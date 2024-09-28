@@ -34,6 +34,7 @@ RUN /bin/bash -c "source /app/.venv/bin/activate && source /opt/ros/jazzy/setup.
 
 # Expose the required port
 # EXPOSE 5000
+EXPOSE 5555
 
 ENV ROS_DOMAIN_ID=1
 # ENV RMW_IMPLEMENTATION='rmw_fastrtps_cpp ros2 run robot_control ros2_controller'
