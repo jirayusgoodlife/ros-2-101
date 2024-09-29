@@ -38,7 +38,7 @@ EXPOSE 5000
 
 ENV ROS_DOMAIN_ID=1
 
-CMD [ "tail","-f", "/dev/null" ]
-# CMD ["/bin/bash", "-c", "source /app/.venv/bin/activate && cd /app/controller && python3 main.py"]
+# CMD [ "tail","-f", "/dev/null" ]
+CMD ["/bin/bash", "-c", "source /app/.venv/bin/activate && cd /app/controller && python3 main.py"]
 # Command to run your ROS 2 node
 # CMD ["/bin/bash", "-c", "source /app/.venv/bin/activate && source /app/robot/install/setup.bash && ros2 run robot_control ros2_controller"]

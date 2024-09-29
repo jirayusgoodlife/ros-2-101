@@ -19,7 +19,6 @@
                 <!-- Video Feed -->
                 <div class="d-inline">
                     <img id="videoFeed" src="/video_feed" alt="Video Feed" class="img-fluid rounded w-100">
-
                 </div>
             </div>
             <div class="pt-3 pb-2 col-sm-12">
@@ -27,7 +26,7 @@
                     <button id="captureButton" class="btn btn-success capture-button mx-2"><i
                             class="fa-solid fa-camera"></i></button>
                     <a id="downloadLink" style="display: none;">Download Captured Image</a>
-                    <div class="btn-group" role="group"></div>
+                    <div class="btn-group" role="group">
                         <!-- Start Button -->
                         <button id="startButton" class="btn mx-1">
                             <i class="fa-solid fa-power-off"></i>
@@ -54,7 +53,7 @@
                     <div class="col-12">
                         <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
                             <li class="nav-item" role="presentation">
-                                <button class="btn nav-link" id="pills-home-tab" data-toggle="pill"
+                                <button class="btn nav-link active" id="pills-home-tab" data-toggle="pill"
                                     data-target="#pills-tab1" type="button" role="tab" aria-controls="pills-tab1"
                                     aria-selected="true">
                                     <i class="fa-solid fa-list"></i> Logs
@@ -71,20 +70,21 @@
                     </div>
                     <div class="col-12">
                         <div class="tab-content" id="pills-tabContent">
-                            <div class="tab-pane fade" id="pills-tab1" role="tabpanel" aria-labelledby="pills-home-tab">
+                            <div class="tab-pane fade show active" id="pills-tab1" role="tabpanel"
+                                aria-labelledby="pills-home-tab">
                                 <div class="row">
                                     <div class="col-12">
                                         <div class="table-responsive-sm">
                                             <table class="table table-borderless table-hover">
                                                 <thead>
                                                     <tr>
-                                                        <td width="10%">Date</td>
+                                                        <td width="20%">Date</td>
                                                         <td width="5%">Type</td>
                                                         <td>Detail</td>
                                                     </tr>
                                                 </thead>
-                                                <tbody>
-                                                    
+                                                <tbody id="logTableBody">
+                                                    <!-- Logs will be appended here -->
                                                 </tbody>
                                             </table>
                                         </div>
@@ -94,6 +94,7 @@
                             <div class="tab-pane fade" id="pills-tab2" role="tabpanel"
                                 aria-labelledby="pills-profile-tab">
                                 <div class="btn-group" role="group">
+                                    <!-- Additional Settings Content -->
                                     <div class="col">
                                         <label for="startKey">Start Engine</label>
                                         <input class="form-control" type="text" id="startKey" value=" " disabled
@@ -147,10 +148,9 @@
             </div>
         </div>
     </div>
-    </div>
 
     <!-- Bootstrap JS and dependencies via CDN -->
-    <script src="{{ url_for('static', filename='js/jquery-3.5.1.slim.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/popper.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
     <script src="{{ url_for('static', filename='fontawesome/js/all.min.js') }}"></script>
@@ -174,11 +174,12 @@
             const leftKey = $('#leftKey');
             const rightKey = $('#rightKey');
             const downKey = $('#downKey');
+            const logTableBody = $('#logTableBody');
 
             let activeInput = null;
             let isStarted = false;
 
-            function startChecker() {
+            function changeButtonStart() {
                 if (isStarted) {
                     startButton.css({ "background-color": "green", "color": "white" });
                     upButton.prop('disabled', false);
@@ -194,38 +195,48 @@
                 }
             }
 
-            startChecker();
+            changeButtonStart();
 
-            startButton.on("click", function () {
+            startButton.on("click", async function () {
                 isStarted = !isStarted;
-                startChecker()
+                try{
+                    let result = await sendCommand(isStarted ? "start": "stop")
+                    changeButtonStart()
+                } catch(e){
+                    alert('Robot is not respone')
+                    console.log(e)
+                }
             })
 
             captureButton.on('click', function () {
-                // Create a canvas element to capture the image from the video feed
-                const canvas = document.createElement('canvas');
-                canvas.width = videoFeed.width;
-                canvas.height = videoFeed.height;
+                try{
+                    // Create a canvas element to capture the image from the video feed
+                    const canvas = document.createElement('canvas');
+                    canvas.width = videoFeed.width;
+                    canvas.height = videoFeed.height;
 
-                // Draw the current frame from the image onto the canvas
-                const context = canvas.getContext('2d');
-                context.drawImage(videoFeed, 0, 0, canvas.width, canvas.height);
+                    // Draw the current frame from the image onto the canvas
+                    const context = canvas.getContext('2d');
+                    context.drawImage(videoFeed, 0, 0, canvas.width, canvas.height);
 
-                // Convert the canvas content to a data URL
-                const dataUrl = canvas.toDataURL('image/jpeg');
+                    // Convert the canvas content to a data URL
+                    const dataUrl = canvas.toDataURL('image/jpeg');
 
-                // Create a temporary download link element
-                const $downloadLink = $('<a>').attr({
-                    href: dataUrl,
-                    download: 'captured_image.jpg'
-                });
+                    // Create a temporary download link element
+                    const $downloadLink = $('<a>').attr({
+                        href: dataUrl,
+                        download: 'captured_image.jpg'
+                    });
 
-                // Programmatically click the link to trigger the download
-                $downloadLink[0].click();
+                    // Programmatically click the link to trigger the download
+                    $downloadLink[0].click();
+                } catch(e){
+                    console.log(e)
+                }
             });
 
             // Function to map keys to button clicks
-            $(document).on('keydown', function (event) {
+            $(document).on('keydown', async function (event) {
                 if (activeInput) {
                     // Set the input value to the pressed key
                     activeInput.val(event.key);
@@ -233,7 +244,13 @@
                 } else {
                     if (event.key === startKey.val()) {
                         isStarted = !isStarted;
-                        startChecker()
+                        try{
+                            let result = await sendCommand(isStarted ? "start": "stop")
+                            changeButtonStart()
+                        } catch(e){
+                            alert('Robot is not respone')
+                            console.log(e)
+                        }
                     } else if (event.key === captureKey.val()) {
                         captureButton.click()
                     }
@@ -271,24 +288,108 @@
             });
 
             // Example actions on button clicks
-            upButton.on('click', function () {
-                alert('Up button clicked!');
+            upButton.on('click', async function () {
+                try{
+                    let result = await sendCommand('forward')
+                } catch(e){
+                    console.log(e)
+                }
             });
 
-            leftButton.on('click', function () {
-                alert('Left button clicked!');
+            leftButton.on('click', async function () {
+                try{
+                    let result = await sendCommand('left')
+                } catch(e){
+                    console.log(e)
+                }
             });
 
-            rightButton.on('click', function () {
-                alert('Right button clicked!');
+            rightButton.on('click', async function () {
+                try{
+                    let result = await sendCommand('right')
+                } catch(e){
+                    console.log(e)
+                }
             });
 
-            downButton.on('click', function () {
-                alert('Down button clicked!');
+            downButton.on('click', async function () {
+                try{
+                    let result = await sendCommand('backward')
+                } catch(e){
+                    console.log(e)
+                }
             });
+
+            
+            // Function to send command to the backend
+            function sendCommand(command) {
+                return new Promise((resolve, reject) => {
+                    $.ajax({
+                        url: '/send_command',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ command: command }),
+                        success: function (response) {
+                            console.log('Command sent: ' + command + ' | Response: ' + response.message);
+                            resolve(response);
+                        },
+                        error: function (xhr) {
+                            console.log('Failed to send command: ' + xhr.responseJSON.message);
+                            reject(xhr.responseJSON);  // Corrected the reject statement
+                        }
+                    });
+                });
+            }
+
+            // Function to fetch logs and display the last 10 in reverse order
+            let previousLogs = [];
+
+            function fetchLogs() {
+                $.ajax({
+                    url: '/logs',
+                    type: 'GET',
+                    success: function (data) {
+                        const currentLogs = data.logs.slice(-10).reverse();  // Get the last 10 logs and reverse them
+
+                        // Check if the current logs are the same as the previous logs
+                        if (JSON.stringify(currentLogs) === JSON.stringify(previousLogs)) {
+                            // If logs haven't changed, stop the system
+                            isStarted = false;
+                            changeButtonStart();
+                        } else {
+                            // If logs have changed, update the table and continue
+                            logTableBody.empty();  // Clear previous logs
+                            currentLogs.forEach(log => {
+                                const logParts = log.split('] ');
+                                const type = logParts[0].replace('[', '');
+                                const date = logParts[1].replace('[', '');
+                                const detail = logParts[2];
+                                
+                                logTableBody.append(`
+                                    <tr>
+                                        <td>${date}</td>
+                                        <td>${type}</td>
+                                        <td>${detail}</td>
+                                    </tr>
+                                `);
+                            });
+
+                            // Update the previous logs to the current logs
+                            previousLogs = currentLogs;
+                        }
+                    },
+                    error: function () {
+                        console.error('Failed to fetch logs');
+                    }
+                });
+            }
+        
+            // Fetch logs every 1.5 seconds
+            setInterval(fetchLogs, 1500);
         });
-
     </script>
+    
+    
 </body>
 
 </html>
