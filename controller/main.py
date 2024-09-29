@@ -56,10 +56,10 @@ def scan_network():
         return None
 
 # Initialize ZeroMQ context and sockets
-SERVER_IP = ""
-while SERVER_IP == "":
+SERVER_IP = None
+while SERVER_IP == None:
     SERVER_IP = scan_network()
-    if SERVER_IP != "":
+    if SERVER_IP != None:
         break
     print("Wait 5 second re-scan to host...")
     time.sleep(5)
