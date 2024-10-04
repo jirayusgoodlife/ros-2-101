@@ -23,19 +23,21 @@ services:
       context: .
       dockerfile: Dockerfile_robot
     # network_mode: host
-    privileged: true            
     devices:
-      # - /dev/video0:/dev/video0  
-      - /dev/ttyUSB0:/dev/ttyUSB0 
-      - /dev/gpiomem:/dev/gpiomem 
-      - /dev/mem:/dev/mem         
-    restart: always    
+      - /dev/ttyUSB0:/dev/ttyUSB0
+      - /dev/gpiomem:/dev/gpiomem  # Add GPIO memory access
+      - /dev/mem:/dev/mem          # Optional, for low-level memory access
+    privileged: true
+    # entrypoint: >
+    #   /bin/bash -c "source /app/.venv/bin/activate && cd /app/robot && source install/setup.bash && ros2 run robot_control ros2_controller"       
+    restart: always 
     volumes:
       - ./robot:/app/robot
     environment:
       - ROS_DOMAIN_ID=1
     ports:
-      - 5555:5555
+      - 5001:5001
+      - 5002:5002
 # networks:
   # default:
     # external: true

@@ -13,7 +13,8 @@ setup(
     ],
     install_requires=[
         'setuptools',
-        'pyzmq',  # Add pyzmq as a dependency to ensure it is installed
+        'pyzmq',
+        'pytz'
     ],
     zip_safe=True,
     maintainer='naphon',
