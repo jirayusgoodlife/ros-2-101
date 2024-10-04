@@ -145,13 +145,14 @@ def generate_frames():
     cap = cv2.VideoCapture(0)  # Ensure the correct device index is used
 
     if not cap.isOpened():
-        raise RuntimeError("Could not start video capture. Check the camera connection or permissions.")
+        print("Could not start video capture. Check the camera connection or permissions.")
+        return fallback_image()  # Show a 'No Signal' image
 
     while True:
         success, frame = cap.read()
         if not success:
             print("Failed to grab a frame from the camera.")
-            break
+            return fallback_image()  # Show a 'No Signal' image
 
         ret, buffer = cv2.imencode('.jpg', frame)
         if not ret:
@@ -164,6 +165,24 @@ def generate_frames():
 
     cap.release()
     print("Video capture stopped.")
+
+def fallback_image():
+    """Generates a fallback image with 'No Signal' text."""
+    # Create a blank image (black background)
+    no_signal_img = np.zeros((480, 640, 3), dtype=np.uint8)
+
+    # Add 'No Signal' text to the image
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    cv2.putText(no_signal_img, "No Signal", (150, 240), font, 2, (255, 255, 255), 2, cv2.LINE_AA)
+
+    # Encode the fallback image as JPEG
+    ret, buffer = cv2.imencode('.jpg', no_signal_img)
+    if not ret:
+        raise RuntimeError("Failed to encode the fallback image.")
+
+    frame = buffer.tobytes()
+    yield (b'--frame\r\n'
+           b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 if __name__ == '__main__':
     try:
