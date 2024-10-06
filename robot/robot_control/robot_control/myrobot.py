@@ -2,14 +2,10 @@ from math import sin, cos, pi
 from pylx16a.lx16a import *
 import time
 
-
-
-
 class Robot:
     
     def __init__(self):
         LX16A.initialize("/dev/ttyUSB0")
-
         # Front Left (FL), Front Right (FR), Rear Left (RL), Rear Right (RR)
         self.servos = {
             1: {"servo": LX16A(1), "min_angle": 30.0, "max_angle": 156.0},
@@ -25,7 +21,6 @@ class Robot:
             11: {"servo": LX16A(11), "min_angle": 30.0, "max_angle": 92.4},
             12: {"servo": LX16A(12), "min_angle": 153.6, "max_angle": 240.0},
         }
-
         # Set the angle limits for all servos
         for servo_data in self.servos.values():
             servo = servo_data["servo"]
