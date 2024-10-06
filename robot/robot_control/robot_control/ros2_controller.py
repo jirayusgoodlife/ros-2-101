@@ -3,7 +3,7 @@ from rclpy.node import Node
 import zmq
 from datetime import datetime
 import pytz
-from .myrobot import Robot
+from .robot import Robot
 
 class ROS2Controller(Node):
     def __init__(self):
