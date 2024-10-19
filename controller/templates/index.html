@@ -110,6 +110,15 @@
                                         <button class="btn btn-secondary edit-btn"
                                             data-target="captureKey">Edit</button>
                                     </div>
+                                    <div class="col">
+                                        <label for="network">Network Configuration</h5>
+                                        <div class="input-group mb-3" id="network">
+                                            <input type="text" id="manualIP" class="form-control" placeholder="Enter IP Address">
+                                            <button id="setIPButton" class="btn btn-primary">Set IP</button>
+                                        </div>
+                                        <button id="scanButton" class="btn btn-secondary">Scan Network</button>
+                                        <div id="scanStatus" class="mt-2"></div>
+                                    </div>
                                 </div>
                                 <div class="btn-group mt-4" role="group">
                                     <div class="col">
@@ -178,6 +187,57 @@
 
             let activeInput = null;
             let isStarted = false;
+
+            const scanButton = $('#scanButton');
+            const setIPButton = $('#setIPButton');
+            const manualIPInput = $('#manualIP');
+            const scanStatus = $('#scanStatus');
+
+            // Handle manual IP setting
+            setIPButton.on('click', async function () {
+                const ip = manualIPInput.val();
+                if (ip) {
+                    try {
+                        const result = await setServerIP(ip);
+                        alert(result.message);
+                    } catch (e) {
+                        alert('Failed to set IP: ' + e.message);
+                    }
+                } else {
+                    alert('Please enter a valid IP address.');
+                }
+            });
+
+            // Handle network scanning
+            scanButton.on('click', async function () {
+                scanStatus.text('Scanning network, please wait...');
+                try {
+                    const result = await scanNetwork();
+                    alert(result.message);
+                    scanStatus.text('');
+                } catch (e) {
+                    alert('Network scan failed: ' + e.message);
+                    scanStatus.text('');
+                }
+            });
+
+            // Function to send the manual IP to the backend
+            function setServerIP(ip) {
+                return $.ajax({
+                    url: '/set_ip',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ ip: ip }),
+                });
+            }
+
+            // Function to trigger a network scan from the backend
+            function scanNetwork() {
+                return $.ajax({
+                    url: '/scan_network',
+                    type: 'POST',
+                });
+            }
 
             function changeButtonStart() {
                 if (isStarted) {
