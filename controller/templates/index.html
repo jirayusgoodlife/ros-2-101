@@ -199,12 +199,12 @@
                 if (ip) {
                     try {
                         const result = await setServerIP(ip);
-                        alert(result.message);
+                        scanStatus.text(result.message);
                     } catch (e) {
-                        alert('Failed to set IP: ' + e.message);
+                        scanStatus.text('Failed to set IP: ' + e.message);
                     }
                 } else {
-                    alert('Please enter a valid IP address.');
+                    scanStatus.text('Please enter a valid IP address.');
                 }
             });
 
@@ -213,11 +213,11 @@
                 scanStatus.text('Scanning network, please wait...');
                 try {
                     const result = await scanNetwork();
-                    alert(result.message);
-                    scanStatus.text('');
+                    scanStatus.text(result.message);
+                    //scanStatus.text('');
                 } catch (e) {
-                    alert('Network scan failed: ' + e.message);
-                    scanStatus.text('');
+                    scanStatus.text('Network scan failed: ' + e.message);
+                    //scanStatus.text('');
                 }
             });
 

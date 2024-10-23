@@ -104,7 +104,7 @@ def scan_network_route():
 def send_command():
     """Send commands to the ROS 2 node."""
     command = request.json.get('command')
-    if command in ['start', 'stop', 'forward', 'backward', 'left', 'right', 'status', 'health_check']:
+    if command in ['start', 'stop', 'forward', 'backward', 'left', 'right', 'default']:
         try:
             socket.send_string(command)
             response = socket.recv_string()

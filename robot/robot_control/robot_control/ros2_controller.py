@@ -72,14 +72,22 @@ class ROS2Controller(Node):
                 pass
 
     def handle_command(self, command):
-        if command == "forward":
-            result = self.robot.move_forward()
-            if result:
-                self.send_response('success in forward')
-            else:
-                self.send_response('fail in forward')
+        if command == "start":
+            self.robot.start()
+        elif command == "stop":
+            self.robot.stop()
+        elif command == "forward":
+            self.robot.move_forward()
+        elif command == "backward":
+            self.robot.move_backward()
+        elif command == "left":
+            self.robot.turn_left()
+        elif command == "right":
+            self.robot.turn_right()
+        elif command == "default":
+            self.robot.position_default()
         else:
-            self.send_response('ok else')
+            self.send_response('Invalid command. Try again.')
 
     def send_response(self, response):
         if self.rep_socket and not self.rep_socket.closed:  # Check if rep_socket is valid

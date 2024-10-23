@@ -8,6 +8,7 @@ class Robot:
         for servo_data in self.servos.values():
             servo = servo_data["servo"]
             servo.set_angle_limits(servo_data["min_angle"], servo_data["max_angle"])
+            servo.enable_torque()
 
         self.prikthai = utils.delays
         
@@ -20,11 +21,11 @@ class Robot:
         self.pwm_f = GPIO.PWM(self.prikthai["front"]["pwm"], 5000)
         self.pwm_r = GPIO.PWM(self.prikthai["rear"]["pwm"], 5000) 
         
-    def position_default(self):
+    def position_default(self, servos=range(1,13)):
         threads = []
 
         # Create a thread for each servo movement
-        for servo_id in range(1,13):
+        for servo_id in servos:
             thread = threading.Thread(target=utils.move_servo, args=(servo_id, self.servos[servo_id]["default"]))
             threads.append(thread)
 
@@ -37,26 +38,45 @@ class Robot:
             thread.join()
 
     def start(self):
+        # set default position
         self.position_default()
-        
-        self.set_delay_up(1,1)
-        self.set_delay_up(1,2)
+        # set power to 100%
         self.pwm_f.ChangeDutyCycle(100)
-        
-        self.set_delay_up(2,1)
-        self.set_delay_up(2,2)
         self.pwm_r.ChangeDutyCycle(100)
+        
+        threads = []
+        for fr in range(1,3):
+            for ab in range(1,3):
+                thread = threading.Thread(target=self.delay_up, args=(fr, ab))
+                threads.append(thread)
+                
+        # Start all threads
+        for thread in threads:
+            thread.start()
+
+        # Wait for all threads to complete
+        for thread in threads:
+            thread.join()
     
     def stop(self):
-        self.set_delay_down(1,1)
-        self.set_delay_down(1,2)
+        # set power to 0%
         self.pwm_f.ChangeDutyCycle(0)
-        
-        self.set_delay_down(2,1)
-        self.set_delay_down(2,2)
         self.pwm_r.ChangeDutyCycle(0) 
+        threads = []
+        for fr in range(1,3):
+            for ab in range(1,3):
+                thread = threading.Thread(target=self.delay_down, args=(fr, ab))
+                threads.append(thread)
+                
+        # Start all threads
+        for thread in threads:
+            thread.start()
 
-    def set_delay_up(self, position, ab):
+        # Wait for all threads to complete
+        for thread in threads:
+            thread.join()
+
+    def delay_up(self, position, ab, delay=1):
         """
         position = 1 is front
         position = 2 is rear
@@ -73,8 +93,9 @@ class Robot:
             ab = "in_b"
             
         GPIO.output(self.prikthai[position][ab], GPIO.HIGH)
+        time.sleep(delay)
       
-    def set_delay_down(self, position, ab):
+    def delay_down(self, position, ab, delay=1):
         """
         position = 1 is front
         position = 2 is rear
@@ -90,91 +111,64 @@ class Robot:
         else:
             ab = "in_b"
         GPIO.output(self.prikthai[position][ab], GPIO.LOW) 
+        time.sleep(delay)
     
     def move_forward(self):
-        servo_id = 3
-        # utils.move_servo(servo_id, utils.get_servo_default(servo_id))
-        utils.move_servo(servo_id, utils.get_servo_default(servo_id)-15)
-        # utils.move_servo(servo_id, utils.get_servo_default(servo_id)+15)
-        # utils.smooth_move(servo=utils.get_servo(servo_id), start_angle=(utils.get_servo_default(servo_id) - 15), target_angle=(utils.get_servo_default(servo_id)), delay=0.025)
-        # utils.smooth_move(servo=utils.get_servo(servo_id), start_angle=(utils.get_servo_default(servo_id)), target_angle=(utils.get_servo_default(servo_id) + 15), delay=0.025)
-        utils.move_servo(servo_id, utils.get_servo_default(servo_id))
+        
+        fr = 1
+        ab = 1
+        # self.delay_down(fr,ab, 5)
+        utils.top_left_up()
+        # self.delay_up(fr,ab)
+        
+        # fr = 1
+        # ab = 2
+        # self.delay_down(fr,ab, 5)
+        utils.top_right_up()
+        # self.delay_up(fr, ab)
+        
+        # fr = 2
+        # ab = 2
+        # self.delay_down(fr,ab, 5)
+        utils.bot_right_up()
+        # self.delay_up(fr, ab)
+        
+        # fr = 2
+        # ab = 1
+        # self.delay_down(fr,ab, 5)
+        utils.bot_left_up()
+        # self.delay_up(fr,ab)
+        
+        self.position_default([1,4,7,10])       
         
     def move_backward(self):
-        print("move backward")
+        
+        utils.top_left_down()
+        
+        utils.top_right_down()
+        
+        utils.bot_left_down()
+        
+        utils.bot_right_down()
+        
+        
+        self.position_default([1,4,7,10])      
 
     def turn_left(self):
-        print("Turning left")
+        utils.top_left_down()
+        utils.top_right_up()
+        utils.bot_left_down()
+        utils.bot_right_up()
+        self.position_default([1,4,7,10])  
 
     def turn_right(self):
-        # Turn right by moving left side servos forward and right side backward
-        print("Turning right")
-        time.sleep(1)
+        utils.top_left_up()
+        utils.top_right_down()
+        utils.bot_left_up()
+        utils.bot_right_down()
+        self.position_default([1,4,7,10])  
 
     def reset(self):
         print("Resetting servos to default")
         self.position_default()
         
-            
-# Usage example:
-if __name__ == "__main__":
-    robot = Robot()
-    try:        
-        print("Control your robot:")
-        print("w: Move Forward")
-        print("s: Move Backward")
-        print("a: Turn Left")
-        print("d: Turn Right")
-        print("t: Start")
-        print("y: Stop")
-        print("h: Swing Servo")
-        print("j: Check Servo Position")
-        print("f: Reset to Default Position")
-        print("q: Quit")
-
-        # Command loop
-        while True:
-            command = input("Enter command: ").lower()
-
-            if command == "w":
-                robot.move_forward()
-            elif command == "h":
-                servo = input("Enter servo: ")
-                low = input("Enter low limit: ")
-                high = input("Enter high limit: ")
-                if servo.isdigit() and low.isdigit() and high.isdigit():
-                    robot.swing_servo(int(servo), int(low), int(high))
-                else:
-                    print("Invalid input. Please enter numbers.")
-            elif command == "j":
-                try:
-                    servo_id = int(input("Enter the servo ID to check position: "))
-                    position = int(input("Enter position: "))
-                    robot.move_servo(servo_id, position)
-                except ValueError:
-                    print("Invalid input. Please enter numbers.")
-            elif command == "s":
-                robot.move_backward()
-            elif command == "a":
-                robot.turn_left()
-            elif command == "d":
-                robot.turn_right()
-            elif command == "t":
-                robot.start()
-            elif command == "y":
-                robot.stop()
-            elif command == "f":
-                robot.position_default()
-            elif command == "q":
-                print("Exiting...")
-                break
-            else:
-                print("Invalid command. Please try again.")
-            
-            time.sleep(1)  # Optional: Add delay to prevent rapid consecutive actions
-
-        # Reset the servos before exiting
-    except Exception as e:
-        print(e)
-        robot.reset()
-        print("Robot reset and program terminated.")
