@@ -32,21 +32,26 @@ received_logs = []  # Store received logs
 
 def scan_ip_with_nmap(ip):
     """Use Nmap to scan a specific IP for required ports."""
-    global SERVER_IP  # To update from within threads
+    global SERVER_IP
 
-    if SERVER_IP:  # Stop scanning if IP has already been found
+    if SERVER_IP:  # Stop scanning if IP is found
         return None
 
     nm = nmap.PortScanner()
     ports_range = ','.join(map(str, REQUIRED_PORTS))
 
-    print(f"Scanning {ip} for ports {ports_range}...")
+    app.logger.info(f"Scanning {ip} for ports {ports_range}...")
     nm.scan(ip, ports_range)
+
+    # Check if the IP is present in the scan result
+    if ip not in nm.all_hosts():
+        app.logger.info(f"IP {ip} not found in the scan result.")
+        return None
 
     # Check if both required ports are open
     if all(nm[ip]['tcp'][port]['state'] == 'open' for port in REQUIRED_PORTS):
-        print(f"IP {ip} has both required ports open.")
-        SERVER_IP = ip  # Set found_ip and stop further scans
+        app.logger.info(f"IP {ip} has both required ports open.")
+        SERVER_IP = ip
         return ip
 
     return None
@@ -60,7 +65,7 @@ def scan_network_with_nmap():
             print(f"Found IP: {open_ip}. Stopping further scans.")
             return open_ip  # Stop scanning and return the found IP
 
-    print("No suitable IPs found.")
+    app.logger.info("No suitable IPs found.")
     return None
 
 def connect_to_server(ip):
