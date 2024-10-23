@@ -15,7 +15,8 @@ RUN apt-get update && \
     git \
     libgl1 \
     libglib2.0-0 \
-    libzmq3-dev
+    libzmq3-dev \
+    nmap
 
 # Create and set up a virtual environment
 RUN python3 -m venv /app/.venv
