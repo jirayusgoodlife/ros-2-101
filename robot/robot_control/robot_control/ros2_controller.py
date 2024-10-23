@@ -109,6 +109,12 @@ class ROS2Controller(Node):
             elif command == "default":
                 self.robot.position_default()
                 self.logs('position_default ok')
+            elif command == "mode_delay_on":
+                self.robot.turn_off_delay = False
+                self.logs('turn_on_delay ok')
+            elif command == "mode_delay_off":
+                self.robot.turn_off_delay = True
+                self.logs('turn_off_delay ok')
             else:
                 self.logs('Invalid command. Try again.', 'warn')
         except Exception as e:
