@@ -14,7 +14,7 @@ class ROS2Controller(Node):
         self.connected = False
         self.shutdown_called = False  # Flag to track if shutdown has been called
         self.setup_socket()
-        self.robot = Robot()
+        self.robot = Robot(logs = self.logs)
 
     def logs(self, message, type_log='info'):
         # Only log if ROS 2 context is still active
@@ -72,22 +72,33 @@ class ROS2Controller(Node):
                 pass
 
     def handle_command(self, command):
-        if command == "start":
-            self.robot.start()
-        elif command == "stop":
-            self.robot.stop()
-        elif command == "forward":
-            self.robot.move_forward()
-        elif command == "backward":
-            self.robot.move_backward()
-        elif command == "left":
-            self.robot.turn_left()
-        elif command == "right":
-            self.robot.turn_right()
-        elif command == "default":
-            self.robot.position_default()
-        else:
-            self.send_response('Invalid command. Try again.')
+        try:
+            if command == "start":
+                self.robot.start()
+                self.send_response('Start ok')
+            elif command == "stop":
+                self.robot.stop()
+                self.send_response('Stop ok')
+            elif command == "forward":
+                self.robot.move_forward()
+                self.send_response('move_forward ok')
+            elif command == "backward":
+                self.robot.move_backward()
+                self.send_response('move_backward ok')
+            elif command == "left":
+                self.robot.turn_left()
+                self.send_response('turn_left ok')
+            elif command == "right":
+                self.robot.turn_right()
+                self.send_response('turn_right ok')
+            elif command == "default":
+                self.robot.position_default()
+                self.send_response('position_default ok')
+            else:
+                self.send_response('Invalid command. Try again.')
+        except Exception as e:
+            self.logs(f"Command handling failed: {str(e)}", 'error')
+
 
     def send_response(self, response):
         if self.rep_socket and not self.rep_socket.closed:  # Check if rep_socket is valid
