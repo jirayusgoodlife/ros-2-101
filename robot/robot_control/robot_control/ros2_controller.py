@@ -4,6 +4,7 @@ import zmq
 from datetime import datetime
 import pytz
 from .robot import Robot
+import time
 
 class ROS2Controller(Node):
     def __init__(self):
@@ -14,7 +15,7 @@ class ROS2Controller(Node):
         self.connected = False
         self.shutdown_called = False  # Flag to track if shutdown has been called
         self.setup_socket()
-        self.robot = Robot(logs = self.logs)
+        self.robot = Robot(logs=self.logs)
 
     def logs(self, message, type_log='info'):
         # Only log if ROS 2 context is still active
@@ -48,77 +49,80 @@ class ROS2Controller(Node):
     def setup_socket(self):
         try:
             self.zmq_context = zmq.Context()
-            # REP port 5001 - for resolving commands
-            self.rep_socket = self.zmq_context.socket(zmq.REP)
-            self.rep_socket.bind("tcp://*:5001")
 
-            # PUB port 5002 - for sending logs
+            # REP socket
+            self.rep_socket = self.zmq_context.socket(zmq.SUB)
+            self.rep_socket.bind("tcp://*:5001")
+            self.rep_socket.setsockopt_string(zmq.SUBSCRIBE, "")
+
+            # PUB socket
             self.pub_socket = self.zmq_context.socket(zmq.PUB)
             self.pub_socket.bind("tcp://*:5002")
-            self.logs('ZeroMQ is started')
+
+            self.logs('ZeroMQ sockets initialized successfully.')
             self.connected = True
-        except Exception as e:
+        except zmq.ZMQError as e:
             self.connected = False
             self.logs(f"Failed to bind ZeroMQ socket: {e}", 'error')
+            raise  # Ensure error propagation to catch startup issues.
 
+    
     def listen_for_commands(self):
-        if self.rep_socket and not self.rep_socket.closed:  # Check if rep_socket is valid
-            try:
-                # Wait for a command from the client
-                command = self.rep_socket.recv_string(flags=zmq.NOBLOCK)
-                self.logs(f"Received command: {command}")
-                self.handle_command(command)
-            except zmq.Again:
-                pass
+        if not self.rep_socket or self.rep_socket.closed:
+            self.logs("SUB socket is not available.", 'error')
+            return
+
+        try:
+            # Receive commands from the publisher
+            command = self.rep_socket.recv_string(flags=zmq.NOBLOCK)
+            self.logs(f"Received command: {command}")
+            self.handle_command(command)
+        except zmq.Again:  # No message available
+            time.sleep(0.1)  # Avoid busy-waiting
+        except zmq.ZMQError as e:
+            self.logs(f"ZeroMQ Error: {e}", 'error')
 
     def handle_command(self, command):
+        if not self.robot:
+            self.logs("Robot instance not initialized.", 'error')
+            return
+
         try:
             if command == "start":
                 self.robot.start()
-                self.send_response('Start ok')
+                self.logs('Start ok')
             elif command == "stop":
                 self.robot.stop()
-                self.send_response('Stop ok')
+                self.logs('Stop ok')
             elif command == "forward":
                 self.robot.move_forward()
-                self.send_response('move_forward ok')
+                self.logs('move_forward ok')
             elif command == "backward":
                 self.robot.move_backward()
-                self.send_response('move_backward ok')
+                self.logs('move_backward ok')
             elif command == "left":
                 self.robot.turn_left()
-                self.send_response('turn_left ok')
+                self.logs('turn_left ok')
             elif command == "right":
                 self.robot.turn_right()
-                self.send_response('turn_right ok')
+                self.logs('turn_right ok')
             elif command == "default":
                 self.robot.position_default()
-                self.send_response('position_default ok')
+                self.logs('position_default ok')
             else:
-                self.send_response('Invalid command. Try again.')
+                self.logs('Invalid command. Try again.', 'warn')
         except Exception as e:
-            self.logs(f"Command handling failed: {str(e)}", 'error')
-
-
-    def send_response(self, response):
-        if self.rep_socket and not self.rep_socket.closed:  # Check if rep_socket is valid
-            try:
-                self.rep_socket.send_string(response)
-                self.logs(f"Sent response: {response}")
-            except zmq.ZMQError as e:
-                self.logs(f"Failed to send response: {e}", 'error')
-
-    def ok(self):
-        return self.connected
+            self.logs(f"Command handling failed: {e}", 'error')
 
     def shutdown(self):
-        # Set the shutdown flag to avoid repeated shutdowns
         if self.shutdown_called:
+            self.logs("Shutdown already initiated.", 'warn')
             return
 
         self.shutdown_called = True
+        self.logs("Shutting down...")
 
-        # Avoid using sockets after they are closed
+        # Close ZeroMQ sockets safely
         if self.pub_socket and not self.pub_socket.closed:
             self.pub_socket.close()
         if self.rep_socket and not self.rep_socket.closed:
@@ -126,27 +130,27 @@ class ROS2Controller(Node):
         if self.zmq_context:
             self.zmq_context.term()
 
-        # Log shutdown message before fully shutting down the ROS 2 context
-        if self.connected:
-            self.logs("Cleaned up ZeroMQ resources.")
         self.connected = False
+
+    def ok(self):
+        return rclpy.ok() and self.connected
 
 def main(args=None):
     rclpy.init(args=args)
     node = ROS2Controller()
     try:
         while rclpy.ok() and node.ok():
-            node.logs("Wait for Command...")  # Periodically send logs
-            node.listen_for_commands()  # Listen for incoming commands
+            node.logs("Waiting for command...")  # Periodic log
+            node.listen_for_commands()
             rclpy.spin_once(node, timeout_sec=1.0)
     except KeyboardInterrupt:
-        node.logs('Robot stopped','warn')
+        node.logs('Robot stopped.', 'warn')
     except Exception as e:
-        node.logs(f"An error occurred: {str(e)}", 'error')
+        node.logs(f"An error occurred: {e}", 'error')
     finally:
         node.shutdown()
         if not node.shutdown_called:
-            rclpy.shutdown()  # Ensure shutdown is called only once
+            rclpy.shutdown()  # Ensure proper shutdown
 
 if __name__ == '__main__':
     main()

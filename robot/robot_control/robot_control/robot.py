@@ -1,8 +1,8 @@
 import RPi.GPIO as GPIO
 import time
 import threading
-# from . import utils
-import utils
+from . import utils
+# import utils
 class Robot:
     def __init__(self, logs=None):
         self.servos = utils.servos
@@ -22,6 +22,7 @@ class Robot:
         self.pwm_f = GPIO.PWM(self.prikthai["front"]["pwm"], 5000)
         self.pwm_r = GPIO.PWM(self.prikthai["rear"]["pwm"], 5000) 
         self.logs = logs
+        self.turn_off_delay = True # ปิดปั๊ม = True, เปิด = False
         self.send_logs('echo from robot to ros')
     def send_logs(self,message = ""):
         if(self.logs != None):
@@ -47,6 +48,8 @@ class Robot:
     def start(self):
         # set default position
         self.position_default()
+        if self.turn_off_delay:
+            return
         # set power to 100%
         self.send_logs('set power to 100%')
         self.pwm_f.ChangeDutyCycle(100)
@@ -69,6 +72,8 @@ class Robot:
     def stop(self):
         # set power to 0%
         self.send_logs('set power to 0%')
+        if self.turn_off_delay:
+            return
         self.pwm_f.ChangeDutyCycle(0)
         self.pwm_r.ChangeDutyCycle(0) 
         threads = []
@@ -92,6 +97,8 @@ class Robot:
         ab = 1 is in_a (left)
         ab = 2 is in_b (right)
         """
+        if self.turn_off_delay:
+            return
         self.send_logs(f'set delay up fr: {position} ab: {ab} delay: {delay}')
         if position == 1:
             position = "front"
@@ -112,6 +119,8 @@ class Robot:
         ab = 1 is in_a (left)
         ab = 2 is in_b (right)
         """
+        if self.turn_off_delay:
+            return
         self.send_logs(f'set delay down fr: {position} ab: {ab} delay: {delay}')
         if position == 1:
             position = "front"
