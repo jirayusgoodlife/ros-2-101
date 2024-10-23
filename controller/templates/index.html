@@ -14,7 +14,17 @@
 <body class="bg-light">
     <div class="container mt-3">
         <div class="row">
-            <h1 class="col-12">Control Panel</h1>
+            <h1 class="col-12">Control Panel 
+                <span>
+                    <div id="scanStatus2" class="mt-2" style="
+                        float: right;
+                        font-size: 16px;
+                        padding-left: 10px;
+                    "></div>
+                    <button id="scanButton2" type="button" style="float: right;" class="btn btn-secondary">SCAN ROS2</button>
+                </span>
+            </h1>
+            <div id="scanStatus2" class="mt-2"></div>
             <div class="col-sm-12">
                 <!-- Video Feed -->
                 <div class="d-inline">
@@ -189,9 +199,11 @@
             let isStarted = false;
 
             const scanButton = $('#scanButton');
+            const scanButton2 = $('#scanButton2');
             const setIPButton = $('#setIPButton');
             const manualIPInput = $('#manualIP');
             const scanStatus = $('#scanStatus');
+            const scanStatus2 = $('#scanStatus2');
 
             // Handle manual IP setting
             setIPButton.on('click', async function () {
@@ -200,26 +212,38 @@
                     try {
                         const result = await setServerIP(ip);
                         scanStatus.text(result.message);
+                        scanStatus2.text(result.message);
                     } catch (e) {
                         scanStatus.text('Failed to set IP: ' + e.message);
+                        scanStatus2.text('Failed to set IP: ' + e.message);
                     }
                 } else {
                     scanStatus.text('Please enter a valid IP address.');
+                    scanStatus2.text('Please enter a valid IP address.');
                 }
             });
 
             // Handle network scanning
             scanButton.on('click', async function () {
+                await go_scan();
+            });
+            scanButton2.on('click', async function () {
+                await go_scan();
+            });
+            async function go_scan(){
                 scanStatus.text('Scanning network, please wait...');
+                scanStatus2.text('Scanning network, please wait...');
                 try {
                     const result = await scanNetwork();
                     scanStatus.text(result.message);
+                    scanStatus2.text(result.message);
                     //scanStatus.text('');
                 } catch (e) {
                     scanStatus.text('Network scan failed: ' + e.message);
+                    scanStatus2.text('Network scan failed: ' + e.message);
                     //scanStatus.text('');
                 }
-            });
+            }            
 
             // Function to send the manual IP to the backend
             function setServerIP(ip) {
@@ -263,7 +287,7 @@
                     let result = await sendCommand(isStarted ? "start": "stop")
                     changeButtonStart()
                 } catch(e){
-                    alert('Robot is not respone')
+                    console.error('Robot is not respone')
                     console.log(e)
                 }
             })
@@ -308,7 +332,7 @@
                             let result = await sendCommand(isStarted ? "start": "stop")
                             changeButtonStart()
                         } catch(e){
-                            alert('Robot is not respone')
+                            console.error('Robot is not respone')
                             console.log(e)
                         }
                     } else if (event.key === captureKey.val()) {
