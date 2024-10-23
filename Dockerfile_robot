@@ -43,7 +43,7 @@ ENV ROS_DOMAIN_ID=1
 # ENV RMW_IMPLEMENTATION='rmw_fastrtps_cpp ros2 run robot_control ros2_controller'
 # ENV FASTRTPS_DEFAULT_PROFILES_FILE=/app/robot/config/fastrtps.xml
 
-CMD [ "tail","-f", "/dev/null" ]
+# CMD [ "tail","-f", "/dev/null" ]
 # CMD ["/bin/bash", "-c", "source /app/.venv/bin/activate && cd /app/controller && python3 service.py"]
 # Command to run your ROS 2 node
-# CMD ["/bin/bash", "-c", "source /app/.venv/bin/activate && source /app/robot/install/setup.bash && cd /app/robot && ros2 run robot_control ros2_controller"]
+CMD ["/bin/bash", "-c", "source /app/.venv/bin/activate && source /app/robot/install/setup.bash && cd /app/robot && ros2 run robot_control ros2_controller"]

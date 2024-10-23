@@ -74,7 +74,7 @@ def top_right_up():
     servo_id = 5
     move_servo(servo_id, get_servo_default(servo_id)) 
     servo_id = 6
-    move_servo(servo_id, get_servo_default(servo_id) + 10)
+    move_servo(servo_id, get_servo_default(servo_id) + 15)
     
 def bot_left_up():
     servo_id = 9
@@ -98,7 +98,7 @@ def bot_right_up():
     servo_id = 11
     move_servo(servo_id, get_servo_default(servo_id)) 
     servo_id = 12
-    move_servo(servo_id, get_servo_default(servo_id) - 10)
+    move_servo(servo_id, get_servo_default(servo_id) - 20)
     
 def top_left_down():    
     servo_id = 3
@@ -123,7 +123,7 @@ def top_right_down():
     servo_id = 5
     move_servo(servo_id, get_servo_default(servo_id)) 
     servo_id = 6
-    move_servo(servo_id, get_servo_default(servo_id) + 10)
+    move_servo(servo_id, get_servo_default(servo_id) + 15)
     
 def bot_left_down():
     servo_id = 9
