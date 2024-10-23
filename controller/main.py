@@ -21,7 +21,7 @@ SERVER_IP = None  # Track the current server IP dynamically
 context = zmq.Context()
 
 # REQ socket for sending commands
-socket = context.socket(zmq.REQ)
+socket = context.socket(zmq.PUB)
 socket.setsockopt(zmq.RCVTIMEO, 2000)
 
 # SUB socket for receiving logs
@@ -112,8 +112,8 @@ def send_command():
     if command in ['start', 'stop', 'forward', 'backward', 'left', 'right', 'default']:
         try:
             socket.send_string(command)
-            response = socket.recv_string()
-            return jsonify({'status': 'success', 'message': response})
+            # response = socket.recv_string()
+            return jsonify({'status': 'success', 'message': "response ok"})
         except zmq.Again:
             return jsonify({'status': 'error', 'message': 'Request timed out'}), 500
         except zmq.ZMQError as e:

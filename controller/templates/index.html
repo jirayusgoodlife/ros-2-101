@@ -196,7 +196,7 @@
             const logTableBody = $('#logTableBody');
 
             let activeInput = null;
-            let isStarted = false;
+            let isStarted = true;
 
             const scanButton = $('#scanButton');
             const scanButton2 = $('#scanButton2');
@@ -282,10 +282,10 @@
             changeButtonStart();
 
             startButton.on("click", async function () {
-                isStarted = !isStarted;
+                //isStarted = !isStarted;
                 try{
-                    let result = await sendCommand(isStarted ? "start": "stop")
                     changeButtonStart()
+                    let result = await sendCommand(isStarted ? "start": "stop")
                 } catch(e){
                     console.error('Robot is not respone')
                     console.log(e)
@@ -327,7 +327,7 @@
                     activeInput = null;
                 } else {
                     if (event.key === startKey.val()) {
-                        isStarted = !isStarted;
+                        //isStarted = !isStarted;
                         try{
                             let result = await sendCommand(isStarted ? "start": "stop")
                             changeButtonStart()
@@ -438,7 +438,7 @@
                         // Check if the current logs are the same as the previous logs
                         if (JSON.stringify(currentLogs) === JSON.stringify(previousLogs)) {
                             // If logs haven't changed, stop the system
-                            isStarted = false;
+                            //isStarted = false;
                             changeButtonStart();
                         } else {
                             // If logs have changed, update the table and continue
