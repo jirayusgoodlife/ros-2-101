@@ -109,7 +109,7 @@ def scan_network():
 def send_command():
     """Send commands to the ROS 2 node."""
     command = request.json.get('command')
-    if command in ['start', 'stop', 'forward', 'backward', 'left', 'right', 'default']:
+    if command in ['start', 'stop', 'forward', 'backward', 'left', 'right', 'default', 'mode_delay_on', 'mode_delay_off']:
         try:
             socket.send_string(command)
             # response = socket.recv_string()

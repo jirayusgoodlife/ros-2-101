@@ -107,14 +107,14 @@
                                     <!-- Additional Settings Content -->
                                     <div class="col">
                                         <label for="startKey">Start Engine</label>
-                                        <input class="form-control" type="text" id="startKey" value=" " disabled
+                                        <input class="form-control" type="text" id="startKey" value="5" disabled
                                             maxlength="1" />
                                         <br />
                                         <button class="btn btn-secondary edit-btn" data-target="startKey">Edit</button>
                                     </div>
                                     <div class="col">
                                         <label for="captureKey">Capture Image</label>
-                                        <input class="form-control" type="text" id="captureKey" value="c" disabled
+                                        <input class="form-control" type="text" id="captureKey" value="-" disabled
                                             maxlength="1" />
                                         <br />
                                         <button class="btn btn-secondary edit-btn"
@@ -123,8 +123,14 @@
                                     <div class="col">
                                         <label for="network">Network Configuration</h5>
                                         <div class="input-group mb-3" id="network">
-                                            <input type="text" id="manualIP" class="form-control" placeholder="Enter IP Address">
-                                            <button id="setIPButton" class="btn btn-primary">Set IP</button>
+                                            <div class="row">
+                                                <input type="text" id="manualIP" class="form-control" placeholder="Enter IP Address">
+                                            </div>
+                                            <div class="row">
+                                                <button id="setIPButton" class="btn btn-primary">Set IP</button>
+                                                <button id="setModeDelayOn" class="ml-2 btn btn-primary">Delay On</button>
+                                                <button id="setModeDelayOff" class="ml-2 btn btn-primary">Delay Off</button>
+                                            </div>
                                         </div>
                                         <button id="scanButton" class="btn btn-secondary">Scan Network</button>
                                         <div id="scanStatus" class="mt-2"></div>
@@ -133,28 +139,28 @@
                                 <div class="btn-group mt-4" role="group">
                                     <div class="col">
                                         <label for="upKey">Forward</label>
-                                        <input class="form-control" type="text" id="upKey" value="w" disabled
+                                        <input class="form-control" type="text" id="upKey" value="8" disabled
                                             maxlength="1" />
                                         <br />
                                         <button class="btn btn-secondary edit-btn" data-target="upKey">Edit</button>
                                     </div>
                                     <div class="col">
                                         <label for="leftKey">Left</label>
-                                        <input class="form-control" type="text" id="leftKey" value="a" disabled
+                                        <input class="form-control" type="text" id="leftKey" value="4" disabled
                                             maxlength="1" />
                                         <br />
                                         <button class="btn btn-secondary edit-btn" data-target="leftKey">Edit</button>
                                     </div>
                                     <div class="col">
                                         <label for="rightKey">Right</label>
-                                        <input class="form-control" type="text" id="rightKey" value="d" disabled
+                                        <input class="form-control" type="text" id="rightKey" value="6" disabled
                                             maxlength="1" />
                                         <br />
                                         <button class="btn btn-secondary edit-btn" data-target="rightKey">Edit</button>
                                     </div>
                                     <div class="col">
                                         <label for="downKey">Backward</label>
-                                        <input class="form-control" type="text" id="downKey" value="s" disabled
+                                        <input class="form-control" type="text" id="downKey" value="2" disabled
                                             maxlength="1" />
                                         <br />
                                         <button class="btn btn-secondary edit-btn" data-target="downKey">Edit</button>
@@ -205,6 +211,9 @@
             const scanStatus = $('#scanStatus');
             const scanStatus2 = $('#scanStatus2');
 
+            const setModeDelayOff = $('#setModeDelayOff');
+            const setModeDelayOn = $('#setModeDelayOn');
+
             // Handle manual IP setting
             setIPButton.on('click', async function () {
                 const ip = manualIPInput.val();
@@ -222,6 +231,22 @@
                     scanStatus2.text('Please enter a valid IP address.');
                 }
             });
+
+            setModeDelayOff.on('click', async function () {
+                try{
+                    let result = await sendCommand('mode_delay_off')
+                } catch(e){
+                    console.log(e)
+                }
+            })
+
+            setModeDelayOn.on('click', async function () {
+                try{
+                    let result = await sendCommand('mode_delay_on')
+                } catch(e){
+                    console.log(e)
+                }
+            })
 
             // Handle network scanning
             scanButton.on('click', async function () {
@@ -262,7 +287,7 @@
                     type: 'POST',
                 });
             }
-
+            
             function changeButtonStart() {
                 if (isStarted) {
                     startButton.css({ "background-color": "green", "color": "white" });
@@ -282,7 +307,7 @@
             changeButtonStart();
 
             startButton.on("click", async function () {
-                //isStarted = !isStarted;
+                isStarted = !isStarted;
                 try{
                     changeButtonStart()
                     let result = await sendCommand(isStarted ? "start": "stop")
