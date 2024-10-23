@@ -7,6 +7,8 @@ import socket
 import concurrent.futures
 import threading
 import time
+import numpy as np
+import nmap
 
 app = Flask(__name__)
 
@@ -28,36 +30,38 @@ logs_socket.setsockopt_string(zmq.SUBSCRIBE, "")
 
 received_logs = []  # Store received logs
 
-# Function to check if a specific port is open on a given IP
-def is_port_open(ip, port):
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.settimeout(1)  # Set a timeout of 1 second
-            result = sock.connect_ex((ip, port))  # Try to connect
-            return result == 0  # True if the port is open
-    except Exception as e:
-        print(f"Error scanning {ip}:{port} - {e}")
-        return False
+def scan_ip_with_nmap(ip):
+    """Use Nmap to scan a specific IP for required ports."""
+    global SERVER_IP  # To update from within threads
 
-# Function to scan a single IP address for the required ports
-def scan_ip(ip):
-    ports_open = [is_port_open(ip, port) for port in REQUIRED_PORTS]
-    if all(ports_open):
-        print(f"Found IP with both ports open: {ip}")
+    if SERVER_IP:  # Stop scanning if IP has already been found
+        return None
+
+    nm = nmap.PortScanner()
+    ports_range = ','.join(map(str, REQUIRED_PORTS))
+
+    print(f"Scanning {ip} for ports {ports_range}...")
+    nm.scan(ip, ports_range)
+
+    # Check if both required ports are open
+    if all(nm[ip]['tcp'][port]['state'] == 'open' for port in REQUIRED_PORTS):
+        print(f"IP {ip} has both required ports open.")
+        SERVER_IP = ip  # Set found_ip and stop further scans
         return ip
+
     return None
 
-# Main function to scan the network range
-def scan_network():
-    found_ip = None
-    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executor:
-        futures = {executor.submit(scan_ip, f"{NETWORK}{i}"): i for i in range(START_IP, END_IP + 1)}
-        for future in concurrent.futures.as_completed(futures):
-            ip = future.result()
-            if ip:
-                found_ip = ip
-                break
-    return found_ip
+def scan_network_with_nmap():
+    """Scan the network and stop when a suitable IP is found."""
+    for i in range(START_IP, END_IP + 1):
+        ip = f"{NETWORK}{i}"
+        open_ip = scan_ip_with_nmap(ip)
+        if open_ip:
+            print(f"Found IP: {open_ip}. Stopping further scans.")
+            return open_ip  # Stop scanning and return the found IP
+
+    print("No suitable IPs found.")
+    return None
 
 def connect_to_server(ip):
     """Attempt to connect to the server with the given IP."""
@@ -92,12 +96,13 @@ def set_ip():
         return jsonify({'status': 'error', 'message': f'Failed to connect to {ip}'}), 500
 
 @app.route('/scan_network', methods=['POST'])
-def scan_network_route():
+def scan_network():
     """Scan the network and connect to the first available server."""
-    ip = scan_network()
+    ip = scan_network_with_nmap()
     if ip and connect_to_server(ip):
         return jsonify({'status': 'success', 'message': f'Connected to {ip}'})
     else:
+        print("No suitable server found.")
         return jsonify({'status': 'error', 'message': 'No suitable server found'}), 404
 
 @app.route('/send_command', methods=['POST'])
@@ -122,22 +127,23 @@ def video_feed():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 def generate_frames():
-    """Generate video frames from the camera."""
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         print("Could not start video capture.")
-        return fallback_image()
+        yield from fallback_image()  # Use yield from for fallback
 
-    while True:
+    while cap.isOpened():
         success, frame = cap.read()
         if not success:
-            return fallback_image()
+            yield from fallback_image()
+            break
 
         ret, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
         yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
     cap.release()
+
 
 def fallback_image():
     """Generate a fallback 'No Signal' image."""
