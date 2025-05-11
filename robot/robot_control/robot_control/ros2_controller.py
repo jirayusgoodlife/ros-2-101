@@ -140,11 +140,41 @@ class ROS2Controller(Node):
 
     def ok(self):
         return rclpy.ok() and self.connected
+    
+def start_camera_stream(self):
+        def stream():
+            cap = cv2.VideoCapture(0)
+            if not cap.isOpened():
+                self.logs("Failed to open webcam", "error")
+                return
+            
+            self.logs("Camera stream started")
 
+            while self.ok():
+                ret, frame = cap.read()
+                if not ret:
+                    continue
+
+                # Encode to JPEG
+                ret, buffer = cv2.imencode('.jpg', frame)
+                if not ret:
+                    continue
+
+                # Optional: Base64 encode for safer transport (or just send raw bytes)
+                jpg_as_text = base64.b64encode(buffer).decode('utf-8')
+                self.pub_socket.send_string(f"video:{jpg_as_text}")
+
+                time.sleep(0.05)  # ~20 FPS
+
+            cap.release()
+
+        threading.Thread(target=stream, daemon=True).start()
+        
 def main(args=None):
     rclpy.init(args=args)
     node = ROS2Controller()
     try:
+        node.start_camera_stream()
         while rclpy.ok() and node.ok():
             node.logs("Waiting for command...")  # Periodic log
             node.listen_for_commands()

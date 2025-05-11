@@ -26,6 +26,7 @@ services:
     # network_mode: host
     container_name: ros2_robot
     devices:
+      - /dev/video0:/dev/video0 
       - /dev/ttyUSB0:/dev/ttyUSB0
       - /dev/gpiomem:/dev/gpiomem:rwm
       # - /dev/mem:/dev/mem        

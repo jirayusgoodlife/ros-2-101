@@ -132,22 +132,23 @@ def video_feed():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 def generate_frames():
-    cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        print("Could not start video capture.")
-        yield from fallback_image()  # Use yield from for fallback
+    context = zmq.Context()
+    camera_socket = context.socket(zmq.SUB)
+    camera_socket.setsockopt_string(zmq.SUBSCRIBE, "")
+    try:
+        camera_socket.connect(f"tcp://{SERVER_IP}:5003")
+    except Exception as e:
+        print(f"Failed to connect to camera stream: {e}")
+        yield from fallback_image()
+        return
 
-    while cap.isOpened():
-        success, frame = cap.read()
-        if not success:
-            yield from fallback_image()
+    while True:
+        try:
+            frame_bytes = camera_socket.recv()
+            yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+        except zmq.ZMQError as e:
+            print(f"Error receiving frame: {e}")
             break
-
-        ret, buffer = cv2.imencode('.jpg', frame)
-        frame = buffer.tobytes()
-        yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
-    cap.release()
 
 
 def fallback_image():
