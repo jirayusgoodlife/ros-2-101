@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, render_template, Response
+from flask_socketio import SocketIO
 import zmq
 import os
 import sys
@@ -9,11 +10,14 @@ import threading
 import time
 import numpy as np
 import nmap
+import datetime
+import base64
 
 app = Flask(__name__)
+socketio = SocketIO(app)
 
 NETWORK = '192.168.137.'
-START_IP = 2
+START_IP = 100
 END_IP = 254
 REQUIRED_PORTS = [5001, 5002]  # Both ports must be open
 
@@ -27,6 +31,11 @@ socket.setsockopt(zmq.RCVTIMEO, 2000)
 # SUB socket for receiving logs
 logs_socket = context.socket(zmq.SUB)
 logs_socket.setsockopt_string(zmq.SUBSCRIBE, "")
+
+
+stream_thread = None
+streaming_ip = None
+stream_thread_lock = threading.Lock()
 
 received_logs = []  # Store received logs
 
@@ -125,31 +134,133 @@ def send_command():
             return jsonify({'status': 'error', 'message': str(e)}), 500
     else:
         return jsonify({'status': 'error', 'message': 'Invalid command'}), 400
-
-@app.route('/video_feed')
-def video_feed():
-    """Stream video from the camera."""
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-def generate_frames():
+    
+subscriber = None
+def video_stream_thread(server_ip):
     context = zmq.Context()
-    camera_socket = context.socket(zmq.SUB)
-    camera_socket.setsockopt_string(zmq.SUBSCRIBE, "")
-    try:
-        camera_socket.connect(f"tcp://{SERVER_IP}:5003")
-    except Exception as e:
-        print(f"Failed to connect to camera stream: {e}")
-        yield from fallback_image()
-        return
+    subscriber = context.socket(zmq.SUB)
+    subscriber.setsockopt(zmq.CONFLATE, 1)
+    subscriber.setsockopt(zmq.RCVHWM, 1)
+    subscriber.setsockopt_string(zmq.SUBSCRIBE, "")
+    subscriber.connect(f"tcp://{server_ip}:5003")
+
+    # Emit fallback "Connecting" frame first
+    get_connecting_frame()
+
+    # Allow the client to see the fallback before real stream
+    socketio.sleep(1)
 
     while True:
         try:
-            frame_bytes = camera_socket.recv()
-            yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+            frame_bytes = subscriber.recv()
+            socketio.emit('video_frame', frame_bytes)  # Send raw JPEG binary
+            socketio.sleep(0.03)  # ~30 FPS
         except zmq.ZMQError as e:
-            print(f"Error receiving frame: {e}")
+            app.logger.error(f"Streaming error: {e}")
             break
 
+
+@socketio.on('start_stream')
+def handle_start_stream(data):
+    global stream_thread, streaming_ip
+
+    with stream_thread_lock:
+        if stream_thread and streaming_ip == SERVER_IP:
+            return  # Already streaming
+
+        # Emit fallback frame immediately while stream thread is starting
+        get_no_signal_frame()
+
+        # Set IP and start background task
+        streaming_ip = SERVER_IP
+        stream_thread = socketio.start_background_task(video_stream_thread, SERVER_IP)
+
+
+            
+def get_no_signal_frame():
+    no_signal_img = np.zeros((480, 640, 3), dtype=np.uint8)
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    text = f"No Signal {current_time}"
+    app.logger.error(text)
+    cv2.putText(no_signal_img, text, (50, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+
+    # Convert image to JPEG bytes
+    ret, buffer = cv2.imencode('.jpg', no_signal_img)
+    frame_bytes = buffer.tobytes()
+
+    # Emit raw JPEG bytes (same format as actual frames)
+    socketio.emit('video_frame', frame_bytes)
+    
+def get_connecting_frame():
+    # Send fallback image immediately (to reduce wait)
+    no_signal_img = np.zeros((480, 640, 3), dtype=np.uint8)
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    text = f"Connecting {current_time}"
+    cv2.putText(no_signal_img, text, (50, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 200, 255), 2)
+
+    # Convert image to JPEG bytes
+    ret, buffer = cv2.imencode('.jpg', no_signal_img)
+    frame_bytes = buffer.tobytes()
+
+    # Emit the JPEG frame as binary
+    socketio.emit('video_frame', frame_bytes)
+                
+@app.route('/video_feed')
+def video_feed():
+    return Response(generate_frames(SERVER_IP), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+
+def generate_frames(server_ip):
+    context = zmq.Context()
+    camera_socket = None
+
+    while True:
+        if server_ip is None:
+            yield from fallback_image_with_time()
+            continue
+
+        try:
+            if camera_socket is None:
+                camera_socket = context.socket(zmq.SUB)
+                camera_socket.setsockopt(zmq.CONFLATE, 1)
+                camera_socket.setsockopt(zmq.RCVHWM, 1)
+                camera_socket.setsockopt_string(zmq.SUBSCRIBE, "")
+                camera_socket.connect(f"tcp://{server_ip}:5003")
+                app.logger.info(f"Connected to camera feed at tcp://{server_ip}:5003")
+
+            try:
+                frame_bytes = camera_socket.recv(flags=zmq.NOBLOCK)
+                yield (
+                    b'--frame\r\n'
+                    b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n'
+                )
+            except zmq.Again:
+                # No frame ready yet, wait a bit
+                time.sleep(0.01)
+                continue
+        except Exception as e:
+            app.logger.error(f"Camera stream error: {e}")
+            yield from fallback_image_with_time()
+            if camera_socket:
+                camera_socket.close()
+                camera_socket = None
+            time.sleep(1)
+
+    if camera_socket:
+        camera_socket.close()
+    context.term()
+
+    
+def fallback_image_with_time():
+    """Generate a fallback 'No Signal' image with the current time."""
+    no_signal_img = np.zeros((480, 640, 3), dtype=np.uint8)
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    text = f"No Signal {current_time}"
+    app.logger.error(text)
+    cv2.putText(no_signal_img, text, (50, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+    ret, buffer = cv2.imencode('.jpg', no_signal_img)
+    frame = buffer.tobytes()
+    yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 def fallback_image():
     """Generate a fallback 'No Signal' image."""
@@ -177,4 +288,5 @@ log_thread = threading.Thread(target=receive_logs, daemon=True)
 log_thread.start()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # app.run(host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
