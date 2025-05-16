@@ -6,67 +6,89 @@ import pytz
 from .robot import Robot
 import time
 
+import threading
+import cv2
+import base64  # still imported if needed elsewhere
+
 class ROS2Controller(Node):
     def __init__(self):
         super().__init__('robot_client')
         self.pub_socket = None
         self.rep_socket = None
         self.zmq_context = None
+        self.camera_socket = None
         self.connected = False
         self.shutdown_called = False  # Flag to track if shutdown has been called
+        self.last_log_message = None
+        self.log_repeat_count = 0
+        
         self.setup_socket()
         self.robot = Robot(logs=self.logs)
-
+        self.start_camera_stream() # Start the camera stream upon initialization
+        
+        
+        
     def logs(self, message, type_log='info'):
-        # Only log if ROS 2 context is still active
         if not self.shutdown_called:
-            if self.pub_socket and not self.pub_socket.closed:  # Check if pub_socket is valid
-                
-                ros_time = self.get_clock().now().to_msg()  # Get the current time from ROS 2
-                timestamp = datetime.fromtimestamp(ros_time.sec + ros_time.nanosec / 1e9)  # Convert to naive datetime
+            # Handle message repeat logic
+            if message == self.last_log_message:
+                self.log_repeat_count += 1
 
-                # Set timezone to Asia/Bangkok (UTC+7)
-                bangkok_tz = pytz.timezone('Asia/Bangkok')
-                timestamp_bangkok = timestamp.astimezone(bangkok_tz)  # Convert to Bangkok timezone
-
-                # Format the timestamp to the desired format: yyyy-mm-dd hh:mm:ss
-                formatted_time = timestamp_bangkok.strftime('%Y-%m-%d %H:%M:%S')
-                formatted_message = f"[{type_log.upper()}] [{formatted_time}] [{self.get_name()}]: {message}"
-                
-                try:
-                    self.pub_socket.send_string(formatted_message)
-                except zmq.ZMQError as e:
-                    self.get_logger().error(f"Failed to send log via ZeroMQ: {e}")
-
-            # ROS 2 logging
-            if type_log == 'info':
-                self.get_logger().info(f"{message}")
-            elif type_log == 'error':
-                self.get_logger().error(f"{message}")
+                # Show only if it’s the 1st, 2nd, or every 10th repeat
+                if self.log_repeat_count == 1 or self.log_repeat_count == 2 or self.log_repeat_count % 10 == 0:
+                    self._log_and_publish(message, type_log)
             else:
-                self.get_logger().warn(f"{message}")
+                # New message, reset counter and log
+                self.last_log_message = message
+                self.log_repeat_count = 1
+                self._log_and_publish(message, type_log)
+
+    def _log_and_publish(self, message, type_log):
+        if self.pub_socket and not self.pub_socket.closed:
+            ros_time = self.get_clock().now().to_msg()
+            timestamp = datetime.fromtimestamp(ros_time.sec + ros_time.nanosec / 1e9)
+
+            bangkok_tz = pytz.timezone('Asia/Bangkok')
+            timestamp_bangkok = timestamp.astimezone(bangkok_tz)
+            formatted_time = timestamp_bangkok.strftime('%Y-%m-%d %H:%M:%S')
+            formatted_message = f"[{type_log.upper()}] [{formatted_time}] [{self.get_name()}]: {message}"
+            
+            try:
+                self.pub_socket.send_string(formatted_message)
+            except zmq.ZMQError as e:
+                self.get_logger().error(f"Failed to send log via ZeroMQ: {e}")
+
+        if type_log == 'info':
+            self.get_logger().info(f"{message}")
+        elif type_log == 'error':
+            self.get_logger().error(f"{message}")
+        else:
+            self.get_logger().warn(f"{message}")
 
     def setup_socket(self):
         try:
             self.zmq_context = zmq.Context()
 
-            # REP socket
+            # REP socket (renamed to SUB to match Flask's PULL)
             self.rep_socket = self.zmq_context.socket(zmq.SUB)
             self.rep_socket.bind("tcp://*:5001")
             self.rep_socket.setsockopt_string(zmq.SUBSCRIBE, "")
 
-            # PUB socket
+            # PUB socket for logs
             self.pub_socket = self.zmq_context.socket(zmq.PUB)
             self.pub_socket.bind("tcp://*:5002")
+
+            # PUB socket for camera feed
+            self.camera_socket = self.zmq_context.socket(zmq.PUB)
+            self.camera_socket.bind("tcp://*:5003")
 
             self.logs('ZeroMQ sockets initialized successfully.')
             self.connected = True
         except zmq.ZMQError as e:
             self.connected = False
             self.logs(f"Failed to bind ZeroMQ socket: {e}", 'error')
-            raise  # Ensure error propagation to catch startup issues.
+            raise  # Ensure error propagation
 
-    
     def listen_for_commands(self):
         if not self.rep_socket or self.rep_socket.closed:
             self.logs("SUB socket is not available.", 'error')
@@ -119,7 +141,40 @@ class ROS2Controller(Node):
                 self.logs('Invalid command. Try again.', 'warn')
         except Exception as e:
             self.logs(f"Command handling failed: {e}", 'error')
+            
+    def start_camera_stream(self):
+        self.logs("start_camera_stream started")
+        def stream():
+            cap = cv2.VideoCapture(0)
+            if not cap.isOpened():
+                self.logs("Failed to open webcam", "error")
+                return
 
+            self.logs("Camera stream started on port 5003 (PUB)")
+
+            while self.ok():
+                ret, frame = cap.read()
+                if not ret:
+                    continue
+
+                ret, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
+                if not ret:
+                    continue
+
+                try:
+                    self.camera_socket.send(buffer.tobytes())
+                    # DEBUG Logs camera
+                    # self.logs(f"Sent {len(buffer.tobytes())} bytes of camera frame", "info") 
+                except zmq.ZMQError as e:
+                    self.logs(f"Failed to send camera frame: {e}", "error")
+
+                time.sleep(0.01)
+
+            cap.release()
+            self.logs("Camera stream stopped")
+
+        threading.Thread(target=stream, daemon=True).start()
+        
     def shutdown(self):
         if self.shutdown_called:
             self.logs("Shutdown already initiated.", 'warn')
@@ -140,41 +195,14 @@ class ROS2Controller(Node):
 
     def ok(self):
         return rclpy.ok() and self.connected
-    
-def start_camera_stream(self):
-        def stream():
-            cap = cv2.VideoCapture(0)
-            if not cap.isOpened():
-                self.logs("Failed to open webcam", "error")
-                return
-            
-            self.logs("Camera stream started")
-
-            while self.ok():
-                ret, frame = cap.read()
-                if not ret:
-                    continue
-
-                # Encode to JPEG
-                ret, buffer = cv2.imencode('.jpg', frame)
-                if not ret:
-                    continue
-
-                # Optional: Base64 encode for safer transport (or just send raw bytes)
-                jpg_as_text = base64.b64encode(buffer).decode('utf-8')
-                self.pub_socket.send_string(f"video:{jpg_as_text}")
-
-                time.sleep(0.05)  # ~20 FPS
-
-            cap.release()
-
-        threading.Thread(target=stream, daemon=True).start()
-        
+     
 def main(args=None):
     rclpy.init(args=args)
     node = ROS2Controller()
+    print("ROS 2 Controller Node started. Camera stream initialized.")
+    node.logs("ROS 2 Controller Node started. Camera stream initialized.")
+
     try:
-        node.start_camera_stream()
         while rclpy.ok() and node.ok():
             node.logs("Waiting for command...")  # Periodic log
             node.listen_for_commands()
@@ -186,7 +214,7 @@ def main(args=None):
     finally:
         node.shutdown()
         if not node.shutdown_called:
-            rclpy.shutdown()  # Ensure proper shutdown
+            rclpy.shutdown()
 
 if __name__ == '__main__':
     main()

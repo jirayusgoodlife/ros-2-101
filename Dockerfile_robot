@@ -20,7 +20,7 @@ RUN apt-get update && \
 # Create and set up a virtual environment
 RUN python3 -m venv /app/.venv
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /app/.venv/bin/activate
-RUN /app/.venv/bin/pip install flask pylx16a pyserial numpy PyYAML opencv-python pyzmq pytz RPi.GPIO
+RUN /app/.venv/bin/pip install flask pylx16a pyserial numpy PyYAML opencv-python pyzmq pytz RPi.GPIO 
 
 ENV PYTHONPATH=/app/.venv/lib/python3.12/site-packages:$PYTHONPATH
 
@@ -38,6 +38,7 @@ RUN groupadd -g 993 gpio && usermod -aG dialout root && usermod -aG gpio root
 # EXPOSE 5000
 EXPOSE 5001
 EXPOSE 5002
+EXPOSE 5003
 
 ENV ROS_DOMAIN_ID=1
 # ENV RMW_IMPLEMENTATION='rmw_fastrtps_cpp ros2 run robot_control ros2_controller'
