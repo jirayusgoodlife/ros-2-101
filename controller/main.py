@@ -192,13 +192,14 @@ def get_no_signal_frame():
     socketio.emit('video_frame', frame_bytes)
     
 def get_connecting_frame():
-    # Send fallback image immediately (to reduce wait)
     no_signal_img = np.zeros((480, 640, 3), dtype=np.uint8)
     current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    text = f"Connecting {current_time}"
-    cv2.putText(no_signal_img, text, (50, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 200, 255), 2)
 
-    # Convert image to JPEG bytes
+    cv2.putText(no_signal_img, "Waiting to connect", (50, 220), cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 200, 255), 2)
+
+    cv2.putText(no_signal_img, current_time, (50, 260), cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 200, 255), 2)
+    
+    # Encode image to JPEG
     ret, buffer = cv2.imencode('.jpg', no_signal_img)
     frame_bytes = buffer.tobytes()
 
@@ -289,4 +290,4 @@ log_thread.start()
 
 if __name__ == '__main__':
     # app.run(host='0.0.0.0', port=5000, debug=True)
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
