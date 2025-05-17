@@ -28,13 +28,18 @@
             <div class="col-sm-12">
                 <!-- Video Feed -->
                 <div class="d-inline">
-                    <img id="videoFeed" src="/video_feed" alt="Video Feed" class="img-fluid rounded w-100">
+                    <canvas id="videoFeed" width="640" height="480"></canvas>
+                    <!-- <img id="videoFeed" src="" alt="Video Feed" class="img-fluid rounded w-100"> -->
                 </div>
             </div>
             <div class="pt-3 pb-2 col-sm-12">
+                <div class="row d-flex justify-content-center mb-2">
+                    <button id="startStream" class="btn btn-info mr-1">Start Camera</button>
+                    <button id="restartStream" class="btn btn-info ml-1">Restart Camera</button>
+                </div>
                 <div class="row d-flex justify-content-center">
-                    <button id="captureButton" class="btn btn-success capture-button mx-2"><i
-                            class="fa-solid fa-camera"></i></button>
+                    <button id="captureButton" class="btn btn-success capture-button mx-2">
+                        <i class="fa-solid fa-camera"></i></button>
                     <a id="downloadLink" style="display: none;">Download Captured Image</a>
                     <div class="btn-group" role="group">
                         <!-- Start Button -->
@@ -178,12 +183,41 @@
     <script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/popper.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
     <script src="{{ url_for('static', filename='fontawesome/js/all.min.js') }}"></script>
 
     <script>
         $(document).ready(function () {
             // Set up video feed
             const videoFeed = $('#videoFeed')[0];
+
+            const canvas = document.getElementById("videoFeed");
+            const ctx = canvas.getContext("2d");
+
+            const socket = io();
+            $('#startStream').click(()=>startStream());
+            function startStream() {
+                socket.emit('start_stream'); // Optional override
+            }
+            $('#restartStream').click(()=>restartStream());
+            function restartStream() {
+                socket.emit('restart_stream');
+            }
+
+            socket.on('video_frame', (frame) => {
+                const blob = new Blob([new Uint8Array(frame)], { type: 'image/jpeg' });
+                const url = URL.createObjectURL(blob);
+                const img = new Image();
+                img.onload = () => {
+                    ctx.drawImage(img, 0, 0);
+                    URL.revokeObjectURL(url);
+                };
+                img.src = url;
+            });
+
+            socket.on('stream_status', function(data) {
+                console.log('Stream Status:', data);
+            });
 
             // Map the buttons to the key inputs            
             const captureButton = $('#captureButton');
@@ -222,6 +256,7 @@
                         const result = await setServerIP(ip);
                         scanStatus.text(result.message);
                         scanStatus2.text(result.message);
+                        socket.emit('start_stream', {});
                     } catch (e) {
                         scanStatus.text('Failed to set IP: ' + e.message);
                         scanStatus2.text('Failed to set IP: ' + e.message);

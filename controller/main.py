@@ -1,23 +1,26 @@
 from flask import Flask, request, jsonify, render_template, Response
+from flask_socketio import SocketIO
 import zmq
 import os
 import sys
 import cv2
 import socket
 import concurrent.futures
-import threading
+from threading import Lock, Thread
 import time
 import numpy as np
 import nmap
+import datetime
+import base64
 
 app = Flask(__name__)
+socketio = SocketIO(app)
 
 NETWORK = '192.168.137.'
-START_IP = 2
+START_IP = 100
 END_IP = 254
 REQUIRED_PORTS = [5001, 5002]  # Both ports must be open
 
-SERVER_IP = None  # Track the current server IP dynamically
 context = zmq.Context()
 
 # REQ socket for sending commands
@@ -27,6 +30,14 @@ socket.setsockopt(zmq.RCVTIMEO, 2000)
 # SUB socket for receiving logs
 logs_socket = context.socket(zmq.SUB)
 logs_socket.setsockopt_string(zmq.SUBSCRIBE, "")
+
+
+# Global thread state
+stream_thread = None
+stream_thread_lock = Lock()
+streaming_ip = None
+stop_stream_flag = False
+SERVER_IP = '192.168.137.101'  # Replace with your actual default IP
 
 received_logs = []  # Store received logs
 
@@ -125,40 +136,81 @@ def send_command():
             return jsonify({'status': 'error', 'message': str(e)}), 500
     else:
         return jsonify({'status': 'error', 'message': 'Invalid command'}), 400
+    
+def get_connecting_frame():
+    no_signal_img = np.zeros((480, 640, 3), dtype=np.uint8)
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    cv2.putText(no_signal_img, "Waiting to connect", (50, 220), cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 200, 255), 2)
+    cv2.putText(no_signal_img, current_time, (50, 260), cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 200, 255), 2)
+    ret, buffer = cv2.imencode('.jpg', no_signal_img)
+    frame_bytes = buffer.tobytes()
+    socketio.emit('video_frame', frame_bytes)
 
-@app.route('/video_feed')
-def video_feed():
-    """Stream video from the camera."""
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+def video_stream_thread(server_ip):
+    global stop_stream_flag
+    stop_stream_flag = False
 
-def generate_frames():
     context = zmq.Context()
-    camera_socket = context.socket(zmq.SUB)
-    camera_socket.setsockopt_string(zmq.SUBSCRIBE, "")
-    try:
-        camera_socket.connect(f"tcp://{SERVER_IP}:5003")
-    except Exception as e:
-        print(f"Failed to connect to camera stream: {e}")
-        yield from fallback_image()
-        return
+    subscriber = context.socket(zmq.SUB)
+    subscriber.setsockopt(zmq.CONFLATE, 1)
+    subscriber.setsockopt(zmq.RCVHWM, 1)
+    subscriber.setsockopt_string(zmq.SUBSCRIBE, "")
+    subscriber.connect(f"tcp://{server_ip}:5003")
 
-    while True:
+    get_connecting_frame()
+    socketio.sleep(0.5)
+
+    # Drain any old buffered frames
+    for _ in range(5):
         try:
-            frame_bytes = camera_socket.recv()
-            yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-        except zmq.ZMQError as e:
-            print(f"Error receiving frame: {e}")
+            subscriber.recv(zmq.NOBLOCK)
+        except zmq.Again:
             break
 
+    while not stop_stream_flag:
+        try:
+            frame_bytes = subscriber.recv(zmq.NOBLOCK)  # Non-blocking read
+            socketio.emit('video_frame', frame_bytes)
+            socketio.sleep(0.5) #   ถ้า delay แก้เวลา
+        except zmq.Again:
+            socketio.sleep(0.01)
+        except zmq.ZMQError as e:
+            app.logger.error(f"Streaming error: {e}")
+            break
 
-def fallback_image():
-    """Generate a fallback 'No Signal' image."""
-    no_signal_img = np.zeros((480, 640, 3), dtype=np.uint8)
-    cv2.putText(no_signal_img, "No Signal", (150, 240), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 2)
-    ret, buffer = cv2.imencode('.jpg', no_signal_img)
-    frame = buffer.tobytes()
-    yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+    subscriber.close()
+    context.term()
 
+    
+@socketio.on('start_stream')
+def handle_start_stream():
+    global stream_thread, streaming_ip
+    server_ip = SERVER_IP #data.get("server_ip", SERVER_IP)
+
+    with stream_thread_lock:
+        if stream_thread and stream_thread.is_alive() and streaming_ip == server_ip:
+            return  # Already running
+
+        stop_stream_flag = False
+        streaming_ip = server_ip
+        stream_thread = socketio.start_background_task(video_stream_thread, server_ip)
+
+@socketio.on('restart_stream')
+def handle_restart_stream():
+    global stream_thread, streaming_ip, stop_stream_flag
+    server_ip = SERVER_IP #data.get("server_ip", SERVER_IP)
+
+    with stream_thread_lock:
+        if stream_thread and stream_thread.is_alive():
+            stop_stream_flag = True
+            stream_thread.join(timeout=2)
+
+        stop_stream_flag = False
+        streaming_ip = server_ip
+        stream_thread = socketio.start_background_task(video_stream_thread, server_ip)
+
+    socketio.emit("stream_status", {"status": "restarted", "ip": server_ip})
+    
 def receive_logs():
     """Continuously receive logs."""
     while True:
@@ -173,8 +225,9 @@ def receive_logs():
             print(f"ZeroMQ error: {e}")
             break
 
-log_thread = threading.Thread(target=receive_logs, daemon=True)
+log_thread = Thread(target=receive_logs, daemon=True)
 log_thread.start()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # app.run(host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
