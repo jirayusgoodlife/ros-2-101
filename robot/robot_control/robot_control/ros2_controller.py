@@ -136,6 +136,19 @@ class ROS2Controller(Node):
                 self.logs('turn_on_delay ok')
             elif command == "mode_delay_off":
                 self.robot.turn_off_delay = True
+                
+                self.logs('turn_off_delay 1 1 ok')
+                self.robot.delay_down(1,1, 5)
+                
+                self.logs('turn_off_delay 1 2 ok')
+                self.robot.delay_down(1,2, 5)
+                
+                self.logs('turn_off_delay 2 1 ok')
+                self.robot.delay_down(2,1, 5)
+                
+                self.logs('turn_off_delay 2 2 ok')
+                self.robot.delay_down(2,2, 5)
+                
                 self.logs('turn_off_delay ok')
             else:
                 self.logs('Invalid command. Try again.', 'warn')
