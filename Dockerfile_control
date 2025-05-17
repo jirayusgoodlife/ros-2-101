@@ -20,16 +20,18 @@ RUN apt-get update && \
 
 # Create and set up a virtual environment
 RUN python3 -m venv /app/.venv
+
+# Upgrade pip within the virtual environment with retries and increased timeout
+RUN /app/.venv/bin/pip install --upgrade pip --retries 5 --timeout 60
+
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /app/.venv/bin/activate
-RUN /app/.venv/bin/pip install flask pylx16a pyserial numpy PyYAML opencv-python pyzmq python-nmap
+RUN /app/.venv/bin/pip install flask pylx16a pyserial numpy PyYAML opencv-python pyzmq python-nmap flask-socketio --retries 5 --timeout 60
 
 ENV PYTHONPATH=/app/.venv/lib/python3.12/site-packages:$PYTHONPATH
 
 # Copy your application files into the container
 # COPY ./robot /app/robot
 COPY ./controller /app/controller
-
-
 
 # Source ROS 2 setup and build the ROS 2 workspace
 # RUN /bin/bash -c "source /app/.venv/bin/activate && source /opt/ros/jazzy/setup.bash && cd /app/robot && colcon build"
